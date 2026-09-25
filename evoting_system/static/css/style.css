@@ -1,0 +1,82 @@
+/*
+ * Palette + base styles per FRONTEND_STYLE.md.
+ * Plain CSS, no build step, no framework -- Proposal S3.7 keeps the
+ * frontend as Django templates/HTML5/CSS3/JS to minimise operational
+ * surface area. This is a Sprint 1 shell only: base layout + a
+ * placeholder home page, nothing voter-facing yet.
+ */
+
+:root {
+  --color-primary-green: #0d3b2e;
+  --color-primary-green-dark: #123c30;
+  --color-surface: #ffffff;
+  --color-surface-secondary: #f4f5f4;
+  --color-text: #1a1f1d;
+  --color-text-muted: #5b655f;
+  --color-border: #dfe3e0;
+  --font-sans: "Inter", "Helvetica Neue", Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  background: var(--color-surface-secondary);
+}
+
+header.site-header {
+  background: var(--color-primary-green);
+  color: var(--color-surface);
+  padding: 1rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+header.site-header .brand {
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: 0.01em;
+}
+
+main.site-main {
+  max-width: 720px;
+  margin: 3rem auto;
+  padding: 2.5rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+}
+
+main.site-main h1 {
+  margin-top: 0;
+  font-size: 1.75rem;
+}
+
+main.site-main p {
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+footer.site-footer {
+  text-align: center;
+  padding: 1.5rem;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--color-surface-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}

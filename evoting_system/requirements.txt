@@ -1,0 +1,11 @@
+# Pinned per REQUIREMENTS.md S3 (fixed stack, Proposal S1.7 -- no
+# framework substitutions). Django 4.2.x / Python 3.11 as specified;
+# patch versions may be bumped for security fixes only.
+Django==4.2.30
+djangorestframework==3.14.0
+psycopg2-binary==2.9.13
+python-decouple==3.8
+
+# Testing (REQUIREMENTS.md S8)
+pytest==7.4.4
+pytest-django==4.7.0
