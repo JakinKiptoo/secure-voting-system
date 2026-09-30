@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Session Established &mdash; Electronic Voting System{% endblock %}
+{% block content %}
+  <h1>Session established</h1>
+  <p class="badge">Ballot anonymised via one-time token</p>
+  <p>
+    Your identity has been verified. A single-use session token has
+    been issued, valid until {{ expiry_time }}. Ballot casting isn't
+    available yet in this build.
+  </p>
+{% endblock %}

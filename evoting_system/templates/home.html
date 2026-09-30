@@ -5,8 +5,12 @@
 {% block content %}
   <h1>Electronic Voting System</h1>
   <p>
-    This is a Sprint 1 placeholder page. Voter authentication, ballot
-    casting, and public tally verification screens are not built yet
+    Voter registration and authentication are available below. Ballot
+    casting and public tally verification screens are not built yet
     &mdash; they arrive in later sprints per the project roadmap.
+  </p>
+  <p>
+    <a href="{% url 'voters:register' %}">Register as a voter &rarr;</a><br>
+    <a href="{% url 'voters:credentials' %}">Login to vote &rarr;</a>
   </p>
 {% endblock %}

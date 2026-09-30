@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Register &mdash; Electronic Voting System{% endblock %}
+{% block content %}
+  <h1>Voter Registration</h1>
+  <p>Register with your National ID, full name, and phone number.</p>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Register</button>
+  </form>
+{% endblock %}

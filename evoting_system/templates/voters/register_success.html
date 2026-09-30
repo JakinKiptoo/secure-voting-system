@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}Registered &mdash; Electronic Voting System{% endblock %}
+{% block content %}
+  <h1>Registration complete</h1>
+  <p>Your voter record has been created. You can now authenticate to cast a ballot once an election is open.</p>
+  <p><a href="{% url 'voters:credentials' %}">Continue to login &rarr;</a></p>
+{% endblock %}

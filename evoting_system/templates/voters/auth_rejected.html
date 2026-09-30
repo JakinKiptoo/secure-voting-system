@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}Authentication Rejected &mdash; Electronic Voting System{% endblock %}
+{% block content %}
+  <h1>Authentication rejected</h1>
+  <p>{{ reason }}</p>
+  <p><a href="{% url 'voters:credentials' %}">Try again &rarr;</a></p>
+{% endblock %}
