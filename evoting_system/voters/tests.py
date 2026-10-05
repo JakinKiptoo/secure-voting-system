@@ -1,4 +1,5 @@
 import pytest
+from django.db import IntegrityError, transaction
 from django.urls import reverse
 
 from voter_sessions.models import Session
@@ -25,6 +26,35 @@ def test_fr_v00_voter_creation():
     assert voter.voter_id is not None
     assert voter.has_voted is False
     assert voter.registration_date is not None
+
+
+@pytest.mark.django_db
+def test_fr_v00_national_id_uniqueness_enforced_at_db_level():
+    """
+    FR-V-00 (Sprint 3 correction): confirms the DATABASE itself
+    rejects a duplicate national_id_hash -- bypasses
+    VoterRegistrationForm entirely by calling Voter.objects.create()
+    directly twice. The Sprint 2 application-layer check
+    (clean_national_id) can't close the race between two concurrent
+    registration requests for the same National ID; the DB's
+    unique=True constraint is what actually does.
+    """
+    national_id_hash = sha256_hex("22334455")
+    Voter.objects.create(
+        national_id_hash=national_id_hash,
+        full_name="First Registrant",
+        phone_number="+254700111222",
+    )
+
+    with pytest.raises(IntegrityError):
+        with transaction.atomic():
+            Voter.objects.create(
+                national_id_hash=national_id_hash,
+                full_name="Second Registrant (duplicate ID)",
+                phone_number="+254700333444",
+            )
+
+    assert Voter.objects.filter(national_id_hash=national_id_hash).count() == 1
 
 
 @pytest.mark.django_db

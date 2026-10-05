@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Ballot Confirmed &mdash; Electronic Voting System{% endblock %}
+{% block content %}
+  <h1>Your ballot has been recorded</h1>
+  <p class="badge">Ballot anonymised via one-time token</p>
+  <p>Thank you for voting. Keep this confirmation for your records.</p>
+  <p>Ballot reference: <code>{{ ballot_id }}</code></p>
+  <p>Audit hash digest: <code>{{ audit_hash }}</code></p>
+  <p>
+    This system has no record linking your identity to this ballot --
+    the audit hash above lets anyone verify the tally's integrity
+    without revealing who cast which vote.
+  </p>
+{% endblock %}

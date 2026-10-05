@@ -44,7 +44,7 @@ from django.conf import settings
 from django.shortcuts import redirect, render
 from django.utils import timezone
 
-from voter_sessions.services import issue_session
+from voter_sessions.services import VOTING_TOKEN_SESSION_KEY, issue_session
 
 from . import sms_gateway
 from .crypto_utils import sha256_hex
@@ -56,7 +56,6 @@ OTP_VALIDITY_MINUTES = 5
 
 PENDING_VOTER_SESSION_KEY = "pending_auth_voter_id"
 PENDING_EXPIRY_SESSION_KEY = "pending_auth_expiry"
-VOTING_TOKEN_SESSION_KEY = "voting_token"
 DEBUG_MOCK_OTP_SESSION_KEY = "debug_mock_otp"
 
 

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Cast Your Ballot &mdash; Electronic Voting System{% endblock %}
+{% block content %}
+  <h1>Cast Your Ballot</h1>
+  {% if election %}
+    <p class="badge">Ballot anonymised via one-time token</p>
+    <p>Voting for: <strong>{{ election.title }}</strong></p>
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button type="submit">Submit Ballot</button>
+    </form>
+  {% else %}
+    <p>There is no election currently open for voting.</p>
+  {% endif %}
+{% endblock %}

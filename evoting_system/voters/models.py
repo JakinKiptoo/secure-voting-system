@@ -17,7 +17,17 @@ class Voter(models.Model):
     voter_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     national_id_hash = models.CharField(
         max_length=255,
-        help_text="Hashed National ID -- the raw National ID is never stored.",
+        unique=True,
+        help_text=(
+            "Hashed National ID -- the raw National ID is never stored. "
+            "unique=True enforces FR-V-00's uniqueness requirement at "
+            "the database level (Sprint 3 correction): the application-"
+            "layer check in VoterRegistrationForm.clean_national_id "
+            "alone can't stop two concurrent registration requests for "
+            "the same National ID both passing validation before either "
+            "commits -- the DB constraint is what actually closes that "
+            "race."
+        ),
     )
     full_name = models.CharField(max_length=255)
     phone_number = models.CharField(max_length=20)

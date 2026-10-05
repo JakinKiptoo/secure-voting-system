@@ -19,6 +19,15 @@ from .models import Session
 # Revisit if Sprint 3/5 needs a different figure.
 SESSION_TOKEN_LIFETIME_MINUTES = 15
 
+# Django (browser) session key under which the raw uuid_token string
+# is held client-side, from successful MFA (voters/views.py) through
+# ballot submission (ballots/views.py). Defined here rather than in
+# voters/views.py so ballots doesn't have to import from voters'
+# view layer just to share this one name -- both apps import it from
+# the Session Management Module instead, which is the module that
+# conceptually owns the concept of a session token.
+VOTING_TOKEN_SESSION_KEY = "voting_token"
+
 
 def issue_session(voter: Voter) -> Session:
     """

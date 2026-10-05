@@ -5,7 +5,7 @@
   <p class="badge">Ballot anonymised via one-time token</p>
   <p>
     Your identity has been verified. A single-use session token has
-    been issued, valid until {{ expiry_time }}. Ballot casting isn't
-    available yet in this build.
+    been issued, valid until {{ expiry_time }}.
   </p>
+  <p><a href="{% url 'ballots:cast' %}">Proceed to cast your ballot &rarr;</a></p>
 {% endblock %}
