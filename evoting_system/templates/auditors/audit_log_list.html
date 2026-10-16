@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Audit Log &mdash; Auditor Dashboard{% endblock %}
+{% block content %}
+  <h1>Audit Log</h1>
+  <p class="badge">FR-AUD-01 &mdash; AuditLog entries only, no Ballot/Voter/Session detail</p>
+
+  <form method="get">
+    <label for="action_type">Action type</label>
+    <input type="text" id="action_type" name="action_type" value="{{ selected_action_type }}">
+
+    <label for="date_from">From</label>
+    <input type="date" id="date_from" name="date_from" value="{{ date_from }}">
+
+    <label for="date_to">To</label>
+    <input type="date" id="date_to" name="date_to" value="{{ date_to }}">
+
+    <button type="submit" class="btn btn-primary">Filter</button>
+    <a class="btn btn-secondary" href="{% url 'auditors:audit_log_list' %}">Clear</a>
+  </form>
+
+  {% if page_obj.object_list %}
+    <table>
+      <thead>
+        <tr>
+          <th>Log ID</th>
+          <th>Timestamp</th>
+          <th>Action type</th>
+          <th>Ballot hash</th>
+          <th>Previous hash</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entry in page_obj.object_list %}
+          <tr>
+            <td>{{ entry.log_id }}</td>
+            <td>{{ entry.timestamp }}</td>
+            <td>{{ entry.action_type }}</td>
+            <td><code>{{ entry.ballot_hash }}</code></td>
+            <td><code>{{ entry.previous_hash }}</code></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <p>
+      Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+      ({{ page_obj.paginator.count }} entr{{ page_obj.paginator.count|pluralize:"y,ies" }} total)
+    </p>
+    <p>
+      {% if page_obj.has_previous %}
+        <a class="btn btn-secondary" href="?{% if selected_action_type %}action_type={{ selected_action_type }}&{% endif %}{% if date_from %}date_from={{ date_from }}&{% endif %}{% if date_to %}date_to={{ date_to }}&{% endif %}page={{ page_obj.previous_page_number }}">Previous</a>
+      {% endif %}
+      {% if page_obj.has_next %}
+        <a class="btn btn-secondary" href="?{% if selected_action_type %}action_type={{ selected_action_type }}&{% endif %}{% if date_from %}date_from={{ date_from }}&{% endif %}{% if date_to %}date_to={{ date_to }}&{% endif %}page={{ page_obj.next_page_number }}">Next</a>
+      {% endif %}
+    </p>
+  {% else %}
+    <p>No audit log entries match these filters.</p>
+  {% endif %}
+{% endblock %}

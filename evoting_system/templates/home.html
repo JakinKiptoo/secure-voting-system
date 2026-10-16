@@ -1,16 +1,41 @@
 {% extends "base.html" %}
 
-{% block title %}Home &mdash; Electronic Voting System{% endblock %}
+{% block title %}Electronic Voting System{% endblock %}
+
+{% block main_class %} site-main--split{% endblock %}
 
 {% block content %}
-  <h1>Electronic Voting System</h1>
-  <p>
-    Voter registration and authentication are available below. Ballot
-    casting and public tally verification screens are not built yet
-    &mdash; they arrive in later sprints per the project roadmap.
-  </p>
-  <p>
-    <a href="{% url 'voters:register' %}">Register as a voter &rarr;</a><br>
-    <a href="{% url 'voters:credentials' %}">Login to vote &rarr;</a>
-  </p>
+  <div class="landing-panel landing-panel--choices">
+    <p class="badge">Secure Government System</p>
+    <h1>Kenyan Electronic Voting System</h1>
+    <p>
+      Choose how you'd like to continue. This page only links to the
+      existing sign-in flows below &mdash; voter and staff sign-in stay
+      completely separate.
+    </p>
+
+    <ul class="landing-choice-list">
+      <li>
+        <a class="btn btn-primary" href="{% url 'voters:credentials' %}">Vote &rarr;</a>
+      </li>
+      <li>
+        <a class="btn btn-secondary" href="{% url 'admin:login' %}">Staff Login &rarr;</a>
+      </li>
+    </ul>
+
+    <div class="landing-trust-badges">
+      <span class="badge">MFA-verified voter sessions</span>
+      <span class="badge">Ballots anonymised via one-time token</span>
+    </div>
+  </div>
+
+  <div class="landing-panel landing-panel--trust">
+    <h2>Every ballot, verifiable &mdash; every voter, anonymous.</h2>
+    <p>
+      Each vote is recorded with a cryptographic audit trail that
+      anyone can check, while the system is built so no record ever
+      links a ballot back to the voter who cast it. Transparency and
+      privacy, by design rather than by promise.
+    </p>
+  </div>
 {% endblock %}

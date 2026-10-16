@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Choose a dashboard &mdash; Electronic Voting System{% endblock %}
+{% block content %}
+  <h1>Choose a dashboard</h1>
+  <p class="badge">This account holds both the Official and Auditor roles</p>
+  <p>Pick which dashboard to use for this session.</p>
+
+  <ul>
+    <li><a class="btn btn-primary" href="{% url 'officials:dashboard' %}">Officials Dashboard</a></li>
+    <li><a class="btn btn-primary" href="{% url 'auditors:dashboard' %}">Auditor Dashboard</a></li>
+  </ul>
+{% endblock %}

@@ -9,6 +9,17 @@ stated rule, not just this module's interpretation). Covers FR-V-04
 to FR-V-08, the ballot-side of FR-A-03, and FR-DB-01's write path
 (the actual insert-only enforcement is a DB-role grant, not code --
 see scripts/setup_db_roles.sql).
+
+FR-EL-05 update: step 5 ("set has_voted") is now scoped to the
+specific Election being voted in via VoterElectionParticipation,
+not (only) the old global Voter.has_voted boolean -- see that model's
+docstring (voters/models.py) and the FR-EL-05 handover for why a
+single global boolean can't survive more than one Election existing
+over the system's lifetime. Voter.has_voted is still set here too,
+but only as a repurposed, non-gating "voted in at least one election,
+ever" convenience flag -- nothing in this function reads it to decide
+whether a ballot may be cast; that decision is now entirely
+VoterElectionParticipation's.
 """
 
 from dataclasses import dataclass
@@ -20,6 +31,7 @@ from auditlog.models import AuditLog
 from elections.models import Candidate, Election
 from voter_sessions.models import Session
 from voters.crypto_utils import sha256_hex
+from voters.models import VoterElectionParticipation
 
 from .models import Ballot
 
@@ -73,11 +85,20 @@ def cast_ballot(uuid_token: str, candidate_id) -> BallotCastResult:
       2. Record the Ballot
       3. Compute + append SHA-256 hash to AuditLog
       4. Destroy the Session token
-      5. Set Voter.has_voted = True
+      5. Set participation (VoterElectionParticipation, FR-EL-05) +
+         the legacy Voter.has_voted convenience flag
       6. (confirmation is the caller's job, once this returns)
     Any exception anywhere below rolls the whole transaction back --
     no partial ballot state, per DIAGRAMS.md's explicit "roll back in
     full" note.
+
+    The candidate/election lookup and the per-election double-vote
+    check (below) now happen BEFORE "record the Ballot", ahead of
+    where they sat relative to step 2 before FR-EL-05 -- they always
+    had to happen before Ballot creation (the Ballot needs a resolved
+    Candidate), this just makes the double-vote check itself scoped to
+    that same, now-known Election, rather than checking a global flag
+    before the election was even looked up.
     """
     # --- Step 1: verify token against Session record ---------------
     # A Session is only a valid token if it's active AND not expired --
@@ -101,17 +122,6 @@ def cast_ballot(uuid_token: str, candidate_id) -> BallotCastResult:
 
     voter = session.voter  # transient use only -- never persisted onto Ballot
 
-    # Defensive re-check, NOT pictured in the sequence diagram (which
-    # only checks has_voted during authentication, FR-V-02). Added in
-    # Sprint 3 because Sprint 2 does not invalidate a voter's other
-    # active Sessions on a new login (flagged in the Sprint 2
-    # handover) -- without this, a voter who logged in twice could
-    # cast a second ballot with their second token after their first
-    # vote already set has_voted. Flagged here rather than silently
-    # assumed: this is an addition beyond the diagram's literal steps.
-    if voter.has_voted:
-        raise BallotCastError("This voter has already cast a ballot.")
-
     try:
         candidate = Candidate.objects.select_related("election").get(pk=candidate_id)
     except Candidate.DoesNotExist as exc:
@@ -123,6 +133,27 @@ def cast_ballot(uuid_token: str, candidate_id) -> BallotCastResult:
     # voting period.
     if election.status != Election.Status.OPEN:
         raise BallotCastError("This election is not currently open for voting.")
+
+    # FR-EL-05: defensive, per-ELECTION re-check, NOT pictured in the
+    # sequence diagram (which only checks has_voted during
+    # authentication, FR-V-02, now itself rescoped the same way in
+    # voters/views.py). Added in Sprint 3 (then global, now scoped
+    # here) because Sprint 2 does not invalidate a voter's other
+    # active Sessions on a new login -- without this, a voter who
+    # logged in twice could cast a second ballot for the SAME election
+    # with their second token after their first vote in it already
+    # recorded. select_for_update() locks any existing row for the
+    # duration of this transaction so two concurrent casts for the
+    # same (voter, election) can't both pass this check before either
+    # commits -- the same race-closing pattern as the Session and
+    # AuditLog locks elsewhere in this function. Deliberately does NOT
+    # check any OTHER election's participation: a voter who already
+    # voted in a different election must still be able to vote here.
+    participation, _ = VoterElectionParticipation.objects.select_for_update().get_or_create(
+        voter=voter, election=election
+    )
+    if participation.has_voted:
+        raise BallotCastError("This voter has already cast a ballot in this election.")
 
     # --- Step 2: record the Ballot ----------------------------------
     ballot = Ballot.objects.create(election=election, candidate=candidate)
@@ -151,9 +182,22 @@ def cast_ballot(uuid_token: str, candidate_id) -> BallotCastResult:
     session.is_active = False
     session.save(update_fields=["is_active"])
 
-    # --- Step 5: set Voter.has_voted = True --------------------------
-    voter.has_voted = True
-    voter.save(update_fields=["has_voted"])
+    # --- Step 5: set participation (FR-EL-05) + legacy has_voted ----
+    # `participation` is the SAME row locked and fetched above (via
+    # select_for_update + get_or_create), so this is an UPDATE of that
+    # row, not a second/competing fetch.
+    participation.has_voted = True
+    participation.voted_at = timezone.now()
+    participation.save(update_fields=["has_voted", "voted_at"])
+
+    # Legacy global convenience flag only (see Voter.has_voted's
+    # help_text and the module docstring above) -- never read by this
+    # function or by voters/views.py to gate anything; kept in sync
+    # purely so "has this voter voted in at least one election, ever"
+    # stays accurate for any display/reporting use.
+    if not voter.has_voted:
+        voter.has_voted = True
+        voter.save(update_fields=["has_voted"])
 
     # --- Step 6: confirmation is the view's job, using the return ----
     return BallotCastResult(ballot=ballot, audit_entry=audit_entry)

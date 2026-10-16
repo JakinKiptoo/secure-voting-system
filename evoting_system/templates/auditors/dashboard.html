@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Auditor Dashboard &mdash; Electronic Voting System{% endblock %}
+{% block content %}
+  <h1>Auditor Dashboard</h1>
+  <p class="badge">Compliance auditor session</p>
+
+  <p>Read-only tooling over the existing Audit Log. Nothing here can
+    change election, ballot, voter, or audit data.</p>
+
+  <ul>
+    <li>
+      <a class="btn btn-primary" href="{% url 'auditors:audit_log_list' %}">Browse Audit Log (FR-AUD-01)</a>
+    </li>
+    <li>
+      <a class="btn btn-primary" href="{% url 'auditors:verify_chain' %}">Verify chain integrity (FR-AUD-02)</a>
+    </li>
+    <li>
+      <a class="btn btn-secondary" href="{% url 'auditors:dpa_checklist' %}">DPA&nbsp;2019 compliance checklist (FR-AUD-03)</a>
+    </li>
+  </ul>
+{% endblock %}

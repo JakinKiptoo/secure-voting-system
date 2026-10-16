@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Verify Chain Integrity &mdash; Auditor Dashboard{% endblock %}
+{% block content %}
+  <h1>Verify chain integrity</h1>
+  <p class="badge">FR-AUD-02 &mdash; pure hash-chain walk over AuditLog's own columns</p>
+
+  {% if result.intact %}
+    <p class="badge">Chain intact</p>
+  {% else %}
+    <p class="badge">Chain broken</p>
+  {% endif %}
+
+  <p>{{ result.summary }}</p>
+
+  {% if not result.intact and result.break_log_id %}
+    <ul>
+      <li>Broken at log_id: <strong>{{ result.break_log_id }}</strong></li>
+      <li>Timestamp: {{ result.break_timestamp }}</li>
+      <li>Expected previous_hash: <code>{{ result.expected_previous_hash }}</code></li>
+      <li>Actual previous_hash: <code>{{ result.actual_previous_hash }}</code></li>
+    </ul>
+  {% endif %}
+
+  <a class="btn btn-secondary" href="{% url 'auditors:dashboard' %}">Back to dashboard</a>
+{% endblock %}

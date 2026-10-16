@@ -170,22 +170,38 @@ def test_fr_v01_expired_session_rejected_before_any_transaction_work():
 
 
 @pytest.mark.django_db
-def test_cast_ballot_rejects_already_voted_voter():
+def test_cast_ballot_rejects_already_voted_voter_in_same_election():
     """
-    Defensive re-check (Sprint 3 addition, see services.py docstring):
-    a second active Session for a voter who already voted must not be
-    able to cast a second ballot.
+    Defensive re-check (Sprint 3 addition, see services.py docstring;
+    FR-EL-05 rescoped it to per-election): a second active Session for
+    a voter who already voted IN THIS SAME ELECTION must not be able
+    to cast a second ballot in it.
+
+    Rescoped from the original version of this test, which set the
+    legacy global Voter.has_voted=True directly -- that flag no
+    longer gates cast_ballot() at all post-FR-EL-05 (see
+    voters/models.py's Voter.has_voted help_text and
+    ballots/services.py's module docstring); a dedicated,
+    comprehensive FR-EL-05 test suite lives at
+    voters/test_fr_el_05.py, including the cross-election case this
+    single-election test deliberately does not cover.
     """
     election, candidate = _make_open_election_with_candidate()
-    voter, session = _make_voter_with_session("33333333")
-    voter.has_voted = True
-    voter.save(update_fields=["has_voted"])
+    voter, first_session = _make_voter_with_session("33333333")
+    cast_ballot(uuid_token=str(first_session.uuid_token), candidate_id=candidate.candidate_id)
 
-    with pytest.raises(BallotCastError):
-        cast_ballot(uuid_token=str(session.uuid_token), candidate_id=candidate.candidate_id)
+    # A second, independent active Session for the SAME voter -- the
+    # exact race this check exists to close (Sprint 2 doesn't
+    # invalidate a voter's other active Sessions on a new login).
+    from voter_sessions.services import issue_session
 
-    assert Ballot.objects.count() == 0
-    assert Session.objects.filter(pk=session.pk).exists()  # untouched on rejection
+    second_session = issue_session(voter)
+
+    with pytest.raises(BallotCastError, match="already cast a ballot in this election"):
+        cast_ballot(uuid_token=str(second_session.uuid_token), candidate_id=candidate.candidate_id)
+
+    assert Ballot.objects.filter(election=election).count() == 1
+    assert Session.objects.filter(pk=second_session.pk, is_active=True).exists()  # untouched on rejection
 
 
 @pytest.mark.django_db

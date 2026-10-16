@@ -80,3 +80,335 @@ footer.site-footer {
   font-size: 0.8rem;
   color: var(--color-text-muted);
 }
+
+/*
+ * Officials Dashboard button pairing per FRONTEND_STYLE.md:
+ * "secondary action outlined, primary action solid green".
+ */
+.btn {
+  display: inline-block;
+  padding: 0.5rem 1.1rem;
+  margin-right: 0.5rem;
+  border-radius: 4px;
+  border: 1px solid var(--color-primary-green);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background: var(--color-primary-green);
+  color: var(--color-surface);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--color-primary-green);
+}
+
+/*
+ * Auditor Dashboard additions (Thread A, Part 2): plain table + filter
+ * form styling, same palette as the rest of the site. Purely additive
+ * -- no existing rule above is changed, so Part 1's Officials
+ * Dashboard renders exactly as before.
+ */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.9rem;
+}
+
+th, td {
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+th {
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+td code {
+  font-size: 0.8rem;
+  word-break: break-all;
+}
+
+form label {
+  display: inline-block;
+  margin: 0 0.3rem 0.5rem 0;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+form input[type="text"],
+form input[type="date"] {
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 0.35rem 0.5rem;
+  margin-right: 0.75rem;
+  font-family: var(--font-sans);
+}
+
+/*
+ * Thread D, Part A: split-screen landing page, per FRONTEND_STYLE.md's
+ * "Split-screen auth pages" pattern (plain panel + full-bleed
+ * contextual panel with a headline). Scoped entirely to
+ * `.site-main--split` (applied only via home.html's main_class
+ * block override) -- every other page keeps the plain
+ * `main.site-main` card rules above untouched.
+ */
+main.site-main.site-main--split {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  min-height: calc(100vh - 130px);
+}
+
+.landing-panel {
+  padding: 3rem 2.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.landing-panel--choices {
+  background: var(--color-surface);
+}
+
+.landing-panel--choices h1 {
+  margin-top: 0;
+  font-size: 1.9rem;
+}
+
+.landing-panel--choices p {
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+.landing-choice-list {
+  list-style: none;
+  padding: 0;
+  margin: 1.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.landing-choice-list .btn {
+  display: block;
+  width: 100%;
+  text-align: center;
+  padding: 0.85rem 1.1rem;
+  margin-right: 0;
+}
+
+.landing-trust-badges {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.landing-panel--trust {
+  background: linear-gradient(
+    160deg,
+    var(--color-primary-green) 0%,
+    var(--color-primary-green-dark) 100%
+  );
+  color: var(--color-surface);
+}
+
+.landing-panel--trust h2 {
+  font-size: 1.6rem;
+  line-height: 1.3;
+  margin-top: 0;
+}
+
+.landing-panel--trust p {
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.6;
+}
+
+@media (max-width: 860px) {
+  main.site-main.site-main--split {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .landing-panel--trust {
+    order: -1;
+  }
+}
+
+/*
+ * Thread D, Part B: Officials Dashboard sidebar shell, per
+ * FRONTEND_STYLE.md's "Dashboard shell" pattern -- "fixed dark-green
+ * sidebar with icon + label nav, active item highlighted, user
+ * identity pinned at the bottom. Main content area is white with a
+ * light border/shadow card pattern, a breadcrumb + title + status
+ * pill at the top". Scoped entirely to `.site-main--dashboard`
+ * (applied only via templates/officials/_shell.html's main_class
+ * block override) and the `.dashboard-*`/`.stat-card*` classes below
+ * -- every other page keeps the plain `main.site-main` card rules
+ * above untouched, same additive convention as Part A's
+ * `.site-main--split`.
+ */
+main.site-main.site-main--dashboard {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+}
+
+.dashboard-shell {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  min-height: calc(100vh - 130px);
+}
+
+.dashboard-sidebar {
+  background: var(--color-primary-green);
+  color: var(--color-surface);
+  padding: 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-sidebar__heading {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0 0 1rem 0.5rem;
+}
+
+.dashboard-sidebar__nav {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex-grow: 1;
+}
+
+.dashboard-sidebar__link {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.65rem 0.5rem;
+  margin-bottom: 0.2rem;
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.dashboard-sidebar__link:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.dashboard-sidebar__link--active {
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--color-surface);
+  font-weight: 600;
+}
+
+.dashboard-sidebar__icon {
+  font-size: 0.75rem;
+  width: 1rem;
+  text-align: center;
+}
+
+.dashboard-sidebar__identity {
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.dashboard-main {
+  background: var(--color-surface);
+  padding: 2.5rem;
+}
+
+.dashboard-breadcrumb {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  margin: 0 0 1rem;
+}
+
+.dashboard-pagination {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.dashboard-pagination a {
+  color: var(--color-primary-green);
+  margin: 0 0.5rem;
+}
+
+.stat-card-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.stat-card {
+  flex: 1 1 160px;
+  background: var(--color-surface-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 1rem 1.2rem;
+}
+
+.stat-card__label {
+  margin: 0 0 0.35rem;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.stat-card__value {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.stat-card__value--small {
+  font-size: 1.1rem;
+}
+
+.stat-card__sub {
+  margin: 0.2rem 0 0;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 860px) {
+  .dashboard-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-sidebar {
+    flex-direction: row;
+    align-items: center;
+    overflow-x: auto;
+  }
+
+  .dashboard-sidebar__nav {
+    display: flex;
+    flex-grow: 0;
+  }
+
+  .dashboard-sidebar__identity {
+    display: none;
+  }
+}

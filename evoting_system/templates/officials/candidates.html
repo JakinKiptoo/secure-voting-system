@@ -1,0 +1,41 @@
+{% extends "officials/_shell.html" %}
+{% block title %}Candidates &mdash; Officials Dashboard{% endblock %}
+{% block dashboard_title %}Candidates{% endblock %}
+
+{% block dashboard_content %}
+  <h1>Candidates</h1>
+
+  {% if elections %}
+    <form method="get">
+      <label for="election">Election</label>
+      <select name="election" id="election" onchange="this.form.submit()">
+        {% for e in elections %}
+          <option value="{{ e.election_id }}"{% if selected_election and e.election_id == selected_election.election_id %} selected{% endif %}>
+            {{ e.title }} ({{ e.get_status_display }})
+          </option>
+        {% endfor %}
+      </select>
+      <noscript><button type="submit" class="btn btn-secondary">Go</button></noscript>
+    </form>
+  {% else %}
+    <p>No elections have been created yet.</p>
+  {% endif %}
+
+  {% if selected_election %}
+    <h2>{{ selected_election.title }}</h2>
+    <p class="badge">{{ selected_election.get_status_display }}</p>
+
+    {% if candidates %}
+      <ul>
+        {% for candidate in candidates %}
+          <li>
+            <strong>{{ candidate.name }}</strong>{% if candidate.party %} &mdash; {{ candidate.party }}{% endif %}
+            {% if candidate.biography %}<br><span>{{ candidate.biography }}</span>{% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>No candidates registered for this election.</p>
+    {% endif %}
+  {% endif %}
+{% endblock %}

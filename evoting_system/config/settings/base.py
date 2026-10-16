@@ -38,6 +38,23 @@ ALLOWED_HOSTS = config("DJANGO_ALLOWED_HOSTS", default="", cast=Csv())
 #   - auditlog         -> Audit Log Module (model only, Sprint 1)
 # The Tally and Verification Module has no app yet — it is out of scope
 # until Sprint 4 (REQUIREMENTS.md §8, CLAUDE.md sprint roadmap).
+#
+#   - officials        -> Officials Dashboard (not one of the six fixed
+#     modules -- see REQUIREMENTS.md; this is an extension-track
+#     addition, FR-OFF-*). No new tables of its own: the "Official"
+#     Role is a django.contrib.auth Group, so this app depends only
+#     on auth/elections/ballots/voters for read access, never on
+#     voter_sessions (guardrail #3).
+#   - auditors         -> Auditor Dashboard (Thread A, Part 2; FR-AUD-*
+#     and the auditor-side half of FR-OFF/AUD-01). Also no new tables
+#     of its own: the "Auditor" Role is a second django.contrib.auth
+#     Group, created the same way as "Official" (see auditors/apps.py).
+#     Depends only on auth/auditlog for read access -- a deliberately
+#     narrower dependency than officials/, since this dashboard never
+#     needs to touch Election/Ballot/Voter data directly (guardrail
+#     #1/#2: it is read-only over AuditLog's own columns, never joined
+#     to Ballot/Session/Voter). A separate app from officials/ on
+#     purpose, so the two role systems and dashboards stay independent.
 # ------------------------------------------------------------------
 DJANGO_APPS = [
     "django.contrib.admin",
@@ -59,6 +76,8 @@ LOCAL_APPS = [
     "ballots",
     "auditlog",
     "api",
+    "officials",
+    "auditors",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -110,6 +129,18 @@ DATABASES = {
         "PORT": config("DB_PORT", default="5432"),
     }
 }
+
+# ------------------------------------------------------------------
+# Thread A, Part 3: staff post-login auto-redirect. Only reached via
+# common.admin_login.StaffLoginView (mounted at /admin/login/, see
+# config/urls.py) -- the stock admin login view bypasses this setting
+# entirely by hardcoding its own "next" default. Never consulted for
+# the anonymous Voter/OTP flow, which doesn't use
+# django.contrib.auth.login() at all. See
+# common/staff_login_redirect.py for the role-based redirect itself.
+# ------------------------------------------------------------------
+LOGIN_REDIRECT_URL = "post_login_redirect"
+LOGIN_URL = "admin:login"
 
 # ------------------------------------------------------------------
 # Password validation

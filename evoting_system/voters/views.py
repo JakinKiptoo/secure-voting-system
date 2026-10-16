@@ -48,6 +48,7 @@ from voter_sessions.services import VOTING_TOKEN_SESSION_KEY, issue_session
 
 from . import sms_gateway
 from .crypto_utils import sha256_hex
+from .eligibility import voter_has_an_open_election_left_to_vote_in
 from .forms import CredentialForm, OTPForm, VoterRegistrationForm
 from .models import Voter
 
@@ -110,7 +111,13 @@ def credentials_view(request):
 
             # has_voted short-circuit (FR-V-02) -- rejected here, before
             # any OTP is requested, matching the diagram's alt-branch.
-            if voter.has_voted:
+            # FR-EL-05 rescoping: this is no longer a global
+            # Voter.has_voted check -- a voter who already voted in a
+            # PAST election must still be allowed through to vote in a
+            # currently open one. See voters/eligibility.py for the
+            # exact scoping rules (including the "no election open at
+            # all" and "more than one open at once" edge cases).
+            if not voter_has_an_open_election_left_to_vote_in(voter):
                 return render(
                     request,
                     "voters/auth_rejected.html",

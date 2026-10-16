@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% comment %}
+Thread D, Part B: sidebar-shell base for the Officials Dashboard, per
+FRONTEND_STYLE.md's "Dashboard shell" pattern -- "fixed dark-green
+sidebar with icon + label nav, active item highlighted, user identity
+pinned at the bottom. Main content area is white with a light
+border/shadow card pattern, a breadcrumb + title + status pill at the
+top". The three officials pages (overview/elections/candidates) each
+extend THIS template (not base.html directly) and fill
+{% block dashboard_content %}, so the sidebar markup/CSS lives in one
+place.
+
+Purely additive: main_class adds the new `site-main--dashboard`
+modifier class, scoped entirely to officials pages, exactly the same
+technique Thread D Part A used for `site-main--split` -- every other
+page keeps rendering off the untouched `main.site-main` rules.
+{% endcomment %}
+
+{% block main_class %} site-main--dashboard{% endblock %}
+
+{% block content %}
+  <div class="dashboard-shell">
+    <nav class="dashboard-sidebar">
+      <p class="dashboard-sidebar__heading">Officials</p>
+      <ul class="dashboard-sidebar__nav">
+        <li>
+          <a href="{% url 'officials:overview' %}"
+             class="dashboard-sidebar__link{% if active_nav == 'overview' %} dashboard-sidebar__link--active{% endif %}">
+            <span class="dashboard-sidebar__icon" aria-hidden="true">&#9679;</span>
+            Overview
+          </a>
+        </li>
+        <li>
+          <a href="{% url 'officials:elections' %}"
+             class="dashboard-sidebar__link{% if active_nav == 'elections' %} dashboard-sidebar__link--active{% endif %}">
+            <span class="dashboard-sidebar__icon" aria-hidden="true">&#9776;</span>
+            Elections
+          </a>
+        </li>
+        <li>
+          <a href="{% url 'officials:candidates' %}"
+             class="dashboard-sidebar__link{% if active_nav == 'candidates' %} dashboard-sidebar__link--active{% endif %}">
+            <span class="dashboard-sidebar__icon" aria-hidden="true">&#9733;</span>
+            Candidates
+          </a>
+        </li>
+      </ul>
+      <div class="dashboard-sidebar__identity">
+        <span class="badge">Election official session</span>
+      </div>
+    </nav>
+
+    <div class="dashboard-main">
+      <p class="dashboard-breadcrumb">Officials &rsaquo; {% block dashboard_title %}{% endblock %}</p>
+      {% block dashboard_content %}{% endblock %}
+    </div>
+  </div>
+{% endblock %}

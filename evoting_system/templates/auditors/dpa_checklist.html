@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}DPA 2019 Compliance Checklist &mdash; Auditor Dashboard{% endblock %}
+{% block content %}
+  <h1>DPA 2019 compliance checklist</h1>
+  <p class="badge">FR-AUD-03</p>
+
+  {% if checklist_available %}
+    {# Intentionally no real-data branch yet -- Sprint 5 has not produced #}
+    {# checklist content in this repository. See auditors/views.py. #}
+  {% else %}
+    <p class="badge">Sprint 5 not yet complete</p>
+    <p>
+      The Data Protection Act, 2019 compliance checklist is produced in
+      Sprint 5 of the project roadmap (see CLAUDE.md). That sprint has
+      not yet run, so there is no real checklist content to show here
+      yet &mdash; this page intentionally does not invent checklist
+      items in its place.
+    </p>
+  {% endif %}
+
+  <a class="btn btn-secondary" href="{% url 'auditors:dashboard' %}">Back to dashboard</a>
+{% endblock %}

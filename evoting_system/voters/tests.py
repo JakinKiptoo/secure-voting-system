@@ -1,12 +1,16 @@
+from datetime import timedelta
+
 import pytest
 from django.db import IntegrityError, transaction
 from django.urls import reverse
+from django.utils import timezone
 
+from elections.models import Election
 from voter_sessions.models import Session
 
 from . import views as voters_views
 from .crypto_utils import sha256_hex
-from .models import Voter
+from .models import Voter, VoterElectionParticipation
 
 
 @pytest.mark.django_db
@@ -78,20 +82,58 @@ def test_fr_v00_registration_view_creates_voter_and_rejects_duplicate(client):
 
 
 @pytest.mark.django_db
-def test_fr_v02_credentials_view_rejects_already_voted(client):
-    """FR-V-02: has_voted short-circuit rejects authentication before any OTP is requested."""
-    Voter.objects.create(
+def test_fr_v02_credentials_view_rejects_already_voted_in_open_election(client):
+    """
+    FR-V-02 + FR-EL-05: a voter who already has a has_voted=True
+    VoterElectionParticipation row for the CURRENTLY OPEN election is
+    rejected before any OTP is requested -- this is the rescoped
+    replacement for the old global-has_voted version of this test
+    below (test_fr_v02_old_global_has_voted_no_longer_gates_login),
+    which is now exactly the behaviour FR-EL-05 was built to fix.
+    """
+    now = timezone.now()
+    election = Election.objects.create(
+        title="FR-V-02 Rescoped Election", start_date=now, end_date=now + timedelta(hours=1)
+    )
+    election.open_voting()
+
+    voter = Voter.objects.create(
         national_id_hash=sha256_hex("87654321"),
         full_name="Peter Kamau",
         phone_number="+254733000000",
-        has_voted=True,
     )
+    VoterElectionParticipation.objects.create(voter=voter, election=election, has_voted=True)
 
     url = reverse("voters:credentials")
     response = client.post(url, {"national_id": "87654321", "phone_number": "+254733000000"})
 
     assert response.status_code == 200
     assert "already cast a ballot" in response.content.decode().lower()
+
+
+@pytest.mark.django_db
+def test_fr_v02_old_global_has_voted_no_longer_gates_login(client):
+    """
+    FR-EL-05: a voter with the LEGACY global Voter.has_voted=True flag
+    set (e.g. from before this feature existed, or just kept in sync
+    as the non-gating convenience flag cast_ballot() still maintains)
+    but with NO has_voted=True participation row for any currently
+    open election must be allowed to authenticate normally. This is
+    the actual bug FR-EL-05 fixes: has_voted alone no longer locks a
+    voter out of an election they haven't voted in yet.
+    """
+    Voter.objects.create(
+        national_id_hash=sha256_hex("87654322"),
+        full_name="Formerly Voted Voter",
+        phone_number="+254733000001",
+        has_voted=True,  # legacy/global flag only -- no open election, no participation row
+    )
+
+    url = reverse("voters:credentials")
+    response = client.post(url, {"national_id": "87654322", "phone_number": "+254733000001"})
+
+    assert response.status_code == 302  # proceeds to OTP step, i.e. NOT rejected
+    assert response.url == reverse("voters:verify_otp")
 
 
 @pytest.mark.django_db
