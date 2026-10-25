@@ -35,9 +35,19 @@ ALLOWED_HOSTS = config("DJANGO_ALLOWED_HOSTS", default="", cast=Csv())
 #   - voter_sessions   -> Session Management Module (model only, Sprint 1)
 #   - elections        -> Election Administration Module (Election, Candidate)
 #   - ballots          -> Ballot Casting Module (model only, Sprint 1)
-#   - auditlog         -> Audit Log Module (model only, Sprint 1)
-# The Tally and Verification Module has no app yet — it is out of scope
-# until Sprint 4 (REQUIREMENTS.md §8, CLAUDE.md sprint roadmap).
+#   - auditlog         -> Audit Log Module (model + chain-walk service,
+#     Sprint 1 model / Thread A Part 2 service / Sprint 4: the shared
+#     verify_chain_integrity() this file's auditors/ AND tally/ both
+#     call -- see auditlog/services.py)
+#   - tally            -> Tally and Verification Module (Sprint 4;
+#     FR-EL-03, FR-P-01 to FR-P-03). ElectionResult is its only new
+#     table -- the FR-EL-03 "results published" gate and the frozen
+#     tally + pairing-based ZKP snapshot a publish action creates. The
+#     public verification endpoint is intentionally unauthenticated
+#     (CLAUDE.md invariant #4); the publish action is role-gated via
+#     tally/permissions.py, which combines the SAME has_role() checks
+#     officials/ and auditors/ already use (Official OR Auditor), not
+#     a new permission system.
 #
 #   - officials        -> Officials Dashboard (not one of the six fixed
 #     modules -- see REQUIREMENTS.md; this is an extension-track
@@ -78,6 +88,7 @@ LOCAL_APPS = [
     "api",
     "officials",
     "auditors",
+    "tally",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

@@ -1,18 +1,69 @@
-{% extends "base.html" %}
-{% block title %}Verify OTP &mdash; Electronic Voting System{% endblock %}
-{% block content %}
-  <h1>Enter your One-Time PIN</h1>
-  <p class="badge">MFA-verified session</p>
-  <p>We sent a 6-digit PIN to your registered phone. It expires a few minutes after being sent.</p>
-  {% if debug_otp %}
-    <p style="border: 1px dashed #b45309; background: #fffbeb; padding: 0.75rem 1rem; color: #7c2d12;">
-      <strong>DEMO/MOCK VALUE &mdash; NOT A REAL DELIVERY.</strong>
-      Shown only because DEBUG is on. Mock OTP: <strong>{{ debug_otp }}</strong>
-    </p>
-  {% endif %}
-  <form method="post" novalidate>
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Verify</button>
-  </form>
-{% endblock %}
+<!DOCTYPE html>
+<html class="h-full" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Verify OTP — Kenyan Electronic Voting System</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+  tailwind.config = { theme: { extend: {
+    colors: { gov: { forest: '#0E3929', dark: '#08251B', hover: '#0A2D20', accent: '#86EFAC', surface: '#F8FAFA', border: '#E2E8F0' } },
+    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+  } } };
+</script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500;600&amp;display=swap" rel="stylesheet"/>
+<style>
+  .evs-field input {
+    width: 100%; padding: .75rem .875rem; background: #fff; border: 1px solid #e2e8f0;
+    border-radius: .75rem; font-size: 1.25rem; letter-spacing: .5em; text-align: center;
+    font-family: 'JetBrains Mono', monospace; color: #1e293b; transition: all .15s;
+  }
+  .evs-field input:focus { outline: none; border-color: #0E3929; box-shadow: 0 0 0 2px rgba(14,57,41,.2); }
+  .evs-field .errorlist { list-style: none; margin: .375rem 0 0; padding: 0; color: #be123c; font-size: .75rem; font-weight: 600; text-align: center; }
+</style>
+</head>
+<body class="h-full flex flex-col bg-[#F8FAFA] text-slate-800 antialiased font-sans">
+<main class="flex-1 flex items-center justify-center p-6">
+<div class="bg-white rounded-2xl shadow-[0_18px_40px_-12px_rgba(15,23,42,0.08)] border border-slate-200/90 p-7 sm:p-9 max-w-[420px] w-full">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100/90 border border-slate-200 text-[11px] font-medium text-slate-600 mb-4">MFA-verified session</span>
+<h1 class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight mb-1.5">Enter your One-Time PIN</h1>
+<p class="text-xs sm:text-sm text-slate-500 mb-5 leading-relaxed">
+We sent a 6-digit PIN to your registered phone. It expires a few minutes after being sent.
+</p>
+
+{% if debug_otp %}
+<div class="mb-5 rounded-xl border border-dashed border-amber-400 bg-amber-50 p-3.5 text-xs text-amber-900 leading-relaxed">
+<strong class="block mb-0.5">DEMO/MOCK VALUE — NOT A REAL DELIVERY.</strong>
+Shown only because DEBUG is on. Mock OTP: <strong class="font-mono">{{ debug_otp }}</strong>
+</div>
+{% endif %}
+
+<form class="space-y-4" method="post" novalidate>
+{% csrf_token %}
+{% if form.non_field_errors %}
+<ul class="evs-field errorlist">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>
+{% endif %}
+{% for field in form %}
+<div class="evs-field">
+<label class="block text-xs font-semibold text-slate-700 mb-1.5 text-center" for="{{ field.id_for_label }}">{{ field.label }}</label>
+{{ field }}
+{% if field.errors %}<ul class="errorlist">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+</div>
+{% endfor %}
+<button class="group w-full mt-2 bg-[#0E3929] hover:bg-[#144834] text-white rounded-xl py-3 px-4 font-semibold text-sm flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-950/15" type="submit">
+<span>Verify</span>
+</button>
+</form>
+</div>
+</main>
+
+<footer class="w-full bg-[#082218] border-t border-emerald-950 py-3.5 px-6 text-xs text-emerald-100/75">
+<div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left">
+<div class="text-[11px] tracking-wide text-emerald-200/80">© 2026 Kenyan Electronic Voting System (student project). <span class="text-emerald-400/90 font-medium">Final-year academic proof-of-concept — not affiliated with IEBC.</span></div>
+<span class="inline-flex items-center gap-1.5 text-emerald-300 font-semibold text-[11px] uppercase tracking-wider">TLS 1.3</span>
+</div>
+</footer>
+</body>
+</html>

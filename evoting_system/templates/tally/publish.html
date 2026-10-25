@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Publish Results &mdash; {{ election.title }}{% endblock %}
+{% block content %}
+  <h1>Publish Results</h1>
+  <p class="badge">Election official / auditor session</p>
+  <h2>{{ election.title }}</h2>
+  <p class="badge">{{ election.get_status_display }}</p>
+
+  {% if error %}
+    <p><strong>Could not publish:</strong> {{ error }}</p>
+  {% endif %}
+
+  <p>
+    Publishing computes this election's tally, generates its
+    pairing-based correctness proof, and makes both &mdash; along with
+    this election's audit log hashes &mdash; available on the public,
+    unauthenticated verification page. This cannot be undone or
+    re-run: once published, a result is a frozen record.
+  </p>
+
+  <form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-primary">Publish results</button>
+  </form>
+
+  <p><a href="{% url 'tally:verify' election_id=election.election_id %}">View current verification status &rarr;</a></p>
+{% endblock %}

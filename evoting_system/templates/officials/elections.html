@@ -1,76 +1,89 @@
 {% extends "officials/_shell.html" %}
-{% block title %}Elections &mdash; Officials Dashboard{% endblock %}
+{% block title %}Elections — Officials Dashboard{% endblock %}
 {% block dashboard_title %}Elections{% endblock %}
 
 {% block dashboard_content %}
-  <h1>Elections</h1>
-  <p>Every election on the system, whatever its status &mdash; including one
-    that has never been opened.</p>
+<div class="pb-6 border-b border-gray-200 mb-6">
+<h2 class="text-2xl lg:text-3xl font-extrabold text-gray-900 tracking-tight">Elections</h2>
+<p class="text-sm text-gray-500 mt-1">Every election on the system, whatever its status — including one that has never been opened.</p>
+</div>
 
-  <form method="get">
-    <label for="status">Status</label>
-    <select name="status" id="status">
-      <option value=""{% if not selected_status %} selected{% endif %}>All</option>
-      {% for value, label in status_choices %}
-        <option value="{{ value }}"{% if selected_status == value %} selected{% endif %}>{{ label }}</option>
-      {% endfor %}
-    </select>
-    <button type="submit" class="btn btn-secondary">Filter</button>
-  </form>
+<div class="bg-white rounded-2xl p-5 border border-gray-200/80 shadow-sm mb-6">
+<form class="flex flex-wrap items-end gap-3" method="get">
+<div>
+<label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5" for="status">Status</label>
+<select class="rounded-xl border border-gray-200 text-sm px-3.5 py-2.5 focus:border-[#093324] focus:ring-[#093324]" id="status" name="status">
+<option value=""{% if not selected_status %} selected{% endif %}>All</option>
+{% for value, label in status_choices %}
+<option value="{{ value }}"{% if selected_status == value %} selected{% endif %}>{{ label }}</option>
+{% endfor %}
+</select>
+</div>
+<button class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl border-2 border-[#093324] text-[#093324] hover:bg-[#093324] hover:text-white font-semibold text-sm transition" type="submit">Filter</button>
+</form>
+</div>
 
-  {% if page_obj.object_list %}
-    <table>
-      <thead>
-        <tr>
-          <th>Title</th>
-          <th>Status</th>
-          <th>Starts</th>
-          <th>Ends</th>
-          <th>Candidates</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for election in page_obj.object_list %}
-          <tr>
-            <td>{{ election.title }}</td>
-            <td><span class="badge">{{ election.get_status_display }}</span></td>
-            <td>{{ election.start_date }}</td>
-            <td>{{ election.end_date }}</td>
-            <td>{{ election.candidates.count }}</td>
-            <td>
-              <a href="{% url 'officials:candidates' %}?election={{ election.election_id }}">View candidates</a>
-              {% if election.status == "DRAFT" %}
-                <form method="post" action="{% url 'admin:elections_election_changelist' %}" style="display:inline">
-                  {% csrf_token %}
-                  <input type="hidden" name="action" value="open_elections">
-                  <input type="hidden" name="_selected_action" value="{{ election.election_id }}">
-                  <button type="submit" class="btn btn-primary">Open voting</button>
-                </form>
-              {% elif election.status == "OPEN" %}
-                <form method="post" action="{% url 'admin:elections_election_changelist' %}" style="display:inline">
-                  {% csrf_token %}
-                  <input type="hidden" name="action" value="close_elections">
-                  <input type="hidden" name="_selected_action" value="{{ election.election_id }}">
-                  <button type="submit" class="btn btn-secondary">Close voting</button>
-                </form>
-              {% endif %}
-            </td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+{% if page_obj.object_list %}
+<div class="bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden mb-6">
+<table class="w-full text-sm">
+<thead class="bg-gray-50 border-b border-gray-200">
+<tr class="text-xs font-bold text-gray-500 uppercase tracking-wider">
+<th class="text-left px-5 py-3">Title</th>
+<th class="text-left px-5 py-3">Status</th>
+<th class="text-left px-5 py-3">Starts</th>
+<th class="text-left px-5 py-3">Ends</th>
+<th class="text-left px-5 py-3">Candidates</th>
+<th class="text-left px-5 py-3">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-gray-100">
+{% for election in page_obj.object_list %}
+<tr>
+<td class="px-5 py-4 font-semibold text-gray-900">{{ election.title }}</td>
+<td class="px-5 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold {% if election.status == 'OPEN' %}bg-emerald-50 text-emerald-800 border border-emerald-200{% elif election.status == 'CLOSED' %}bg-gray-100 text-gray-600 border border-gray-200{% else %}bg-amber-50 text-amber-800 border border-amber-200{% endif %}">{{ election.get_status_display }}</span>
+</td>
+<td class="px-5 py-4 text-gray-600">{{ election.start_date }}</td>
+<td class="px-5 py-4 text-gray-600">{{ election.end_date }}</td>
+<td class="px-5 py-4 text-gray-600">{{ election.candidates.count }}</td>
+<td class="px-5 py-4">
+<div class="flex items-center gap-2 flex-wrap">
+<a class="text-[#093324] hover:underline font-semibold" href="{% url 'officials:candidates' %}?election={{ election.election_id }}">View candidates</a>
+{% if election.status == "DRAFT" %}
+<form method="post" action="{% url 'admin:elections_election_changelist' %}">
+{% csrf_token %}
+<input type="hidden" name="action" value="open_elections">
+<input type="hidden" name="_selected_action" value="{{ election.election_id }}">
+<button class="inline-flex items-center justify-center px-3.5 py-1.5 rounded-lg bg-[#093324] hover:bg-[#0c402d] text-white font-semibold text-xs transition" type="submit">Open voting</button>
+</form>
+{% elif election.status == "OPEN" %}
+<form method="post" action="{% url 'admin:elections_election_changelist' %}">
+{% csrf_token %}
+<input type="hidden" name="action" value="close_elections">
+<input type="hidden" name="_selected_action" value="{{ election.election_id }}">
+<button class="inline-flex items-center justify-center px-3.5 py-1.5 rounded-lg border-2 border-[#093324] text-[#093324] hover:bg-red-50 hover:border-red-600 hover:text-red-700 font-semibold text-xs transition" type="submit">Close voting</button>
+</form>
+{% endif %}
+</div>
+</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
 
-    <p class="dashboard-pagination">
-      {% if page_obj.has_previous %}
-        <a href="?page={{ page_obj.previous_page_number }}{% if selected_status %}&status={{ selected_status }}{% endif %}">&larr; Previous</a>
-      {% endif %}
-      Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-      {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}{% if selected_status %}&status={{ selected_status }}{% endif %}">Next &rarr;</a>
-      {% endif %}
-    </p>
-  {% else %}
-    <p>No elections match this filter.</p>
-  {% endif %}
+<div class="flex items-center justify-center gap-4 text-sm text-gray-600">
+{% if page_obj.has_previous %}
+<a class="font-semibold text-[#093324] hover:underline" href="?page={{ page_obj.previous_page_number }}{% if selected_status %}&status={{ selected_status }}{% endif %}">← Previous</a>
+{% endif %}
+<span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+{% if page_obj.has_next %}
+<a class="font-semibold text-[#093324] hover:underline" href="?page={{ page_obj.next_page_number }}{% if selected_status %}&status={{ selected_status }}{% endif %}">Next →</a>
+{% endif %}
+</div>
+{% else %}
+<div class="bg-white rounded-2xl p-8 border border-gray-200/80 shadow-sm text-center">
+<p class="text-sm text-gray-500">No elections match this filter.</p>
+</div>
+{% endif %}
 {% endblock %}

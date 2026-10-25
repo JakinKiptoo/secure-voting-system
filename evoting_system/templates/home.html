@@ -1,41 +1,136 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html class="h-full" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Kenyan Electronic Voting System</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          gov: { forest: '#0E3929', dark: '#08251B', hover: '#0A2D20', accent: '#86EFAC', surface: '#F8FAFA', border: '#E2E8F0' }
+        },
+        fontFamily: {
+          sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+        }
+      }
+    }
+  };
+</script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<style>
+  body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+  .hero-vignette {
+    background: radial-gradient(circle at center, rgba(14,57,41,.45) 0%, rgba(6,26,18,.82) 100%),
+                linear-gradient(to bottom, rgba(10,36,26,.3) 0%, rgba(6,22,16,.75) 100%);
+  }
+  .btn-action-glow:hover { box-shadow: 0 10px 25px -5px rgba(14,57,41,.4), 0 8px 10px -6px rgba(14,57,41,.2); }
+</style>
+</head>
+<body class="h-full flex flex-col bg-[#F8FAFA] text-slate-800 antialiased">
 
-{% block title %}Electronic Voting System{% endblock %}
+<main class="flex-1 flex flex-col lg:flex-row w-full min-h-0 relative">
+<!-- Left panel: real entry points -->
+<section class="w-full lg:w-1/2 flex flex-col justify-between p-6 sm:p-10 lg:p-12 xl:p-14 bg-[#F8FAFA] z-10 overflow-y-auto">
+<div class="flex items-center gap-3.5 mb-2">
+<div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[#0E3929] to-[#08251B] p-2 flex items-center justify-center shadow-md shadow-emerald-950/20 border border-emerald-800/40">
+<svg class="w-8 h-8 text-amber-400" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" viewbox="0 0 24 24">
+<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" fill="#0B2B1F" stroke="#E2C157" stroke-width="1.8"></path>
+<path d="M12 2v20" stroke="#E2C157" stroke-dasharray="2 1"></path>
+</svg>
+</div>
+<div>
+<h1 class="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 leading-tight">Kenyan Electronic Voting System</h1>
+<p class="text-[11px] font-bold tracking-[0.22em] text-slate-500 uppercase mt-0.5">FINAL-YEAR ACADEMIC PROJECT</p>
+</div>
+</div>
 
-{% block main_class %} site-main--split{% endblock %}
+<div class="my-auto py-8 flex flex-col items-center w-full">
+<div class="bg-white rounded-2xl shadow-[0_18px_40px_-12px_rgba(15,23,42,0.08)] border border-slate-200/90 p-7 sm:p-9 max-w-[420px] w-full">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100/90 border border-slate-200 text-[11px] font-medium text-slate-600 mb-4">Secure Voting System</span>
+<h2 class="text-xl font-bold text-slate-900 tracking-tight mb-1.5">Choose how you'd like to continue</h2>
+<p class="text-xs sm:text-sm text-slate-500 mb-6 leading-relaxed">
+This page only links to the existing sign-in and registration flows below — voter and staff sign-in stay completely separate.
+</p>
 
-{% block content %}
-  <div class="landing-panel landing-panel--choices">
-    <p class="badge">Secure Government System</p>
-    <h1>Kenyan Electronic Voting System</h1>
-    <p>
-      Choose how you'd like to continue. This page only links to the
-      existing sign-in flows below &mdash; voter and staff sign-in stay
-      completely separate.
-    </p>
+<div class="space-y-3.5">
+<a class="btn-action-glow group w-full bg-[#0E3929] hover:bg-[#144834] text-white rounded-xl py-3.5 px-4 sm:px-5 font-semibold text-sm flex items-center justify-between transition-all duration-200 shadow-md shadow-emerald-950/15" href="{% url 'voters:credentials' %}">
+<div class="flex items-center gap-3">
+<div class="p-1 rounded bg-white/10"><svg class="w-5 h-5 text-emerald-300" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg></div>
+<span>Vote</span>
+</div>
+<svg class="w-4 h-4 text-emerald-300" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M14 5l7 7m0 0l-7 7m7-7H3" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2"></path></svg>
+</a>
+<a class="btn-action-glow group w-full border border-[#0E3929] text-[#0E3929] hover:bg-[#F0FBF6] rounded-xl py-3.5 px-4 sm:px-5 font-semibold text-sm flex items-center justify-between transition-all duration-200" href="{% url 'voters:register' %}">
+<div class="flex items-center gap-3">
+<div class="p-1 rounded bg-emerald-50"><svg class="w-5 h-5 text-[#0E3929]" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M19 8v6M22 11h-6"></path></svg></div>
+<span>Register as a Voter</span>
+</div>
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M14 5l7 7m0 0l-7 7m7-7H3" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2"></path></svg>
+</a>
+<a class="btn-action-glow group w-full border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl py-3.5 px-4 sm:px-5 font-semibold text-sm flex items-center justify-between transition-all duration-200" href="{% url 'admin:login' %}">
+<div class="flex items-center gap-3">
+<div class="p-1 rounded bg-slate-100"><svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M12 2a5 5 0 0 0-5 5v2a5 5 0 0 0 10 0V7a5 5 0 0 0-5-5z"></path><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path></svg></div>
+<span>Staff Login</span>
+</div>
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M14 5l7 7m0 0l-7 7m7-7H3" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2"></path></svg>
+</a>
+</div>
+</div>
 
-    <ul class="landing-choice-list">
-      <li>
-        <a class="btn btn-primary" href="{% url 'voters:credentials' %}">Vote &rarr;</a>
-      </li>
-      <li>
-        <a class="btn btn-secondary" href="{% url 'admin:login' %}">Staff Login &rarr;</a>
-      </li>
-    </ul>
+<div class="mt-7 flex flex-col items-center gap-2.5 w-full max-w-[420px]">
+<div class="flex items-center gap-2 text-[11px] font-semibold text-slate-600 tracking-wider uppercase">
+<svg class="w-4 h-4 text-emerald-700" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="m9 12 2 2 4-4"></path></svg>
+<span>MFA-verified voter sessions</span>
+</div>
+<div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-100/90 border border-slate-200 text-[11px] font-semibold text-slate-700 shadow-sm">
+<svg class="w-3.5 h-3.5 text-emerald-800" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24"><rect height="11" rx="2" ry="2" width="18" x="3" y="11"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+<span class="tracking-wide">Ballots anonymised via one-time token</span>
+</div>
+</div>
+</div>
+</section>
 
-    <div class="landing-trust-badges">
-      <span class="badge">MFA-verified voter sessions</span>
-      <span class="badge">Ballots anonymised via one-time token</span>
-    </div>
-  </div>
+<!-- Right panel: real trust copy from home.html, not placeholder -->
+<section class="w-full lg:w-1/2 relative min-h-[460px] lg:min-h-full flex flex-col justify-center overflow-hidden bg-gov-dark">
+<div class="absolute inset-0 hero-vignette pointer-events-none"></div>
+<header class="relative z-10 w-full flex justify-end p-6 sm:p-8">
+<div class="bg-black/45 backdrop-blur-md border border-white/15 px-3.5 py-2 rounded-lg text-right shadow-xl">
+<div class="flex items-center justify-end gap-2">
+<span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span></span>
+<p class="font-mono text-[10px] tracking-widest text-emerald-300 font-semibold uppercase">System Status: Active</p>
+</div>
+<p class="font-mono text-[9px] tracking-widest text-white/70 uppercase mt-0.5">EVS-NODE-01</p>
+</div>
+</header>
+<div class="relative z-10 px-6 sm:px-12 py-10 flex flex-col items-center text-center">
+<h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white drop-shadow-[0_4px_16px_rgba(0,0,0,0.8)] max-w-xl leading-tight">
+Every ballot, verifiable — every voter, anonymous.
+</h2>
+<div class="w-16 h-1 bg-[#86EFAC]/90 rounded-full my-4"></div>
+<p class="text-base sm:text-lg text-slate-100/95 font-light max-w-md leading-relaxed">
+Each vote is recorded with a cryptographic audit trail that anyone can check, while the system is built so no record ever links a ballot back to the voter who cast it. Transparency and privacy, by design rather than by promise.
+</p>
+</div>
+</section>
+</main>
 
-  <div class="landing-panel landing-panel--trust">
-    <h2>Every ballot, verifiable &mdash; every voter, anonymous.</h2>
-    <p>
-      Each vote is recorded with a cryptographic audit trail that
-      anyone can check, while the system is built so no record ever
-      links a ballot back to the voter who cast it. Transparency and
-      privacy, by design rather than by promise.
-    </p>
-  </div>
-{% endblock %}
+<footer class="w-full bg-[#082218] border-t border-emerald-950 py-3.5 px-6 sm:px-10 lg:px-12 text-xs text-emerald-100/75 z-20">
+<div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3 text-center md:text-left">
+<div class="text-[11px] tracking-wide text-emerald-200/80 leading-normal">
+© 2026 Kenyan Electronic Voting System (student project). <span class="text-emerald-400/90 font-medium">Final-year academic proof-of-concept — not affiliated with IEBC.</span>
+</div>
+<nav class="flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 text-[11px] font-medium tracking-wider uppercase text-emerald-200/80">
+<span class="inline-flex items-center gap-1.5 text-emerald-300 font-semibold pl-1">
+<svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+TLS 1.3
+</span>
+</nav>
+</div>
+</footer>
+</body>
+</html>

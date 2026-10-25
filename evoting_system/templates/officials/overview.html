@@ -1,65 +1,86 @@
 {% extends "officials/_shell.html" %}
-{% block title %}Overview &mdash; Officials Dashboard{% endblock %}
+{% block title %}Overview — Officials Dashboard{% endblock %}
 {% block dashboard_title %}Overview{% endblock %}
 
 {% block dashboard_content %}
-  <h1>Overview</h1>
+{% if no_election_exists %}
+<div class="bg-white rounded-2xl p-8 border border-gray-200/80 shadow-sm text-center">
+<p class="text-sm text-gray-500">No elections have been created yet.</p>
+</div>
 
-  {% if no_election_exists %}
-    <p>No elections have been created yet.</p>
+{% elif election is None %}
+<div class="bg-white rounded-2xl p-8 border border-gray-200/80 shadow-sm text-center">
+<p class="text-sm text-gray-500">No election is currently open, and none has been closed yet.</p>
+</div>
 
-  {% elif election is None %}
-    <p>No election is currently open, and none has been closed yet.</p>
+{% else %}
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-gray-200 mb-8">
+<div class="flex items-center gap-3.5 flex-wrap">
+<h2 class="text-2xl lg:text-3xl font-extrabold text-gray-900 tracking-tight">{{ election.title }}</h2>
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+<span class="w-2 h-2 rounded-full bg-emerald-600"></span>
+{{ election.get_status_display }}{% if is_showing_closed %} — most recently closed{% endif %}
+</span>
+</div>
+</div>
 
-  {% else %}
-    <h2>{{ election.title }}</h2>
-    <p class="badge">
-      {{ election.get_status_display }}{% if is_showing_closed %} &mdash; most recently closed{% endif %}
-    </p>
+<section class="mb-8">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+<div class="bg-white rounded-2xl p-5 border border-gray-200/80 shadow-sm">
+<p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Status</p>
+<p class="text-2xl font-extrabold text-gray-900">{{ election.get_status_display }}</p>
+</div>
+<div class="bg-white rounded-2xl p-5 border border-gray-200/80 shadow-sm">
+<p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Turnout</p>
+<p class="text-2xl font-extrabold text-gray-900">{% if turnout_percent is not None %}{{ turnout_percent }}%{% else %}–{% endif %}</p>
+<p class="text-xs text-gray-500 mt-2">{{ ballot_count }} of {{ voter_count }} voter{{ voter_count|pluralize }}</p>
+</div>
+<div class="bg-white rounded-2xl p-5 border border-gray-200/80 shadow-sm">
+<p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Candidates</p>
+<p class="text-2xl font-extrabold text-gray-900">{{ candidate_count }}</p>
+</div>
+<div class="bg-white rounded-2xl p-5 border border-gray-200/80 shadow-sm">
+<p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{{ time_label }}</p>
+<p class="text-xl font-extrabold text-gray-900 tracking-tight">{{ time_display }}</p>
+</div>
+</div>
+</section>
 
-    <div class="stat-card-row">
-      <div class="stat-card">
-        <p class="stat-card__label">Status</p>
-        <p class="stat-card__value">{{ election.get_status_display }}</p>
-      </div>
-      <div class="stat-card">
-        <p class="stat-card__label">Turnout</p>
-        <p class="stat-card__value">
-          {% if turnout_percent is not None %}{{ turnout_percent }}%{% else %}&ndash;{% endif %}
-        </p>
-        <p class="stat-card__sub">
-          {{ ballot_count }} of {{ voter_count }} voter{{ voter_count|pluralize }}
-        </p>
-      </div>
-      <div class="stat-card">
-        <p class="stat-card__label">Candidates</p>
-        <p class="stat-card__value">{{ candidate_count }}</p>
-      </div>
-      <div class="stat-card">
-        <p class="stat-card__label">{{ time_label }}</p>
-        <p class="stat-card__value stat-card__value--small">{{ time_display }}</p>
-      </div>
-    </div>
+<section class="mb-8">
+<div class="bg-white rounded-2xl p-6 md:p-8 border border-gray-200/80 shadow-sm">
+<h3 class="text-lg font-bold text-gray-900 tracking-tight mb-1">Voting Window Controls</h3>
+<p class="text-sm text-gray-500 mb-5">Runs the existing admin action — no separate logic.</p>
+<div class="flex items-center gap-3">
+<form method="post" action="{% url 'admin:elections_election_changelist' %}">
+{% csrf_token %}
+<input type="hidden" name="action" value="open_elections">
+<input type="hidden" name="_selected_action" value="{{ election.election_id }}">
+<button class="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-[#093324] hover:bg-[#0c402d] text-white font-semibold text-sm shadow-sm transition" type="submit">Open voting</button>
+</form>
+<form method="post" action="{% url 'admin:elections_election_changelist' %}">
+{% csrf_token %}
+<input type="hidden" name="action" value="close_elections">
+<input type="hidden" name="_selected_action" value="{{ election.election_id }}">
+<button class="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl border-2 border-[#093324] hover:bg-red-50 hover:border-red-600 hover:text-red-700 text-[#093324] font-semibold text-sm transition" type="submit">Close voting</button>
+</form>
+</div>
+</div>
+</section>
 
-    <h3>Voting period</h3>
-    <p class="badge">Runs the existing admin action &mdash; no separate logic</p>
-    <form method="post" action="{% url 'admin:elections_election_changelist' %}" style="display:inline">
-      {% csrf_token %}
-      <input type="hidden" name="action" value="open_elections">
-      <input type="hidden" name="_selected_action" value="{{ election.election_id }}">
-      <button type="submit" class="btn btn-primary">Open voting</button>
-    </form>
-    <form method="post" action="{% url 'admin:elections_election_changelist' %}" style="display:inline">
-      {% csrf_token %}
-      <input type="hidden" name="action" value="close_elections">
-      <input type="hidden" name="_selected_action" value="{{ election.election_id }}">
-      <button type="submit" class="btn btn-secondary">Close voting</button>
-    </form>
-
-    <p>
-      <a href="{% url 'officials:candidates' %}?election={{ election.election_id }}">View this election's candidates &rarr;</a>
-      &nbsp;&middot;&nbsp;
-      <a href="{% url 'officials:elections' %}">See all elections &rarr;</a>
-    </p>
-  {% endif %}
+<section>
+<div class="bg-white rounded-2xl p-6 border border-gray-200/80 shadow-sm">
+<h4 class="text-xs font-bold uppercase tracking-wider text-gray-500 mb-4">Quick Links</h4>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+<a class="group p-4 rounded-xl border border-gray-200 hover:border-emerald-700 hover:bg-emerald-50/40 transition flex items-center justify-between" href="{% url 'officials:candidates' %}?election={{ election.election_id }}">
+<span class="text-sm font-bold text-gray-900 group-hover:text-emerald-800 transition">View this election's candidates</span>
+<span class="text-gray-400 group-hover:text-emerald-700 transition">→</span>
+</a>
+<a class="group p-4 rounded-xl border border-gray-200 hover:border-emerald-700 hover:bg-emerald-50/40 transition flex items-center justify-between" href="{% url 'officials:elections' %}">
+<span class="text-sm font-bold text-gray-900 group-hover:text-emerald-800 transition">See all elections</span>
+<span class="text-gray-400 group-hover:text-emerald-700 transition">→</span>
+</a>
+</div>
+</div>
+</section>
+{% endif %}
 {% endblock %}

@@ -1,14 +1,78 @@
-{% extends "base.html" %}
-{% block title %}Ballot Confirmed &mdash; Electronic Voting System{% endblock %}
-{% block content %}
-  <h1>Your ballot has been recorded</h1>
-  <p class="badge">Ballot anonymised via one-time token</p>
-  <p>Thank you for voting. Keep this confirmation for your records.</p>
-  <p>Ballot reference: <code>{{ ballot_id }}</code></p>
-  <p>Audit hash digest: <code>{{ audit_hash }}</code></p>
-  <p>
-    This system has no record linking your identity to this ballot --
-    the audit hash above lets anyone verify the tally's integrity
-    without revealing who cast which vote.
-  </p>
-{% endblock %}
+<!DOCTYPE html>
+<html class="h-full" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Ballot Confirmed — Kenyan Electronic Voting System</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+  tailwind.config = { theme: { extend: {
+    colors: { brand: { 900:'#04271a',850:'#063322',800:'#063b27',750:'#0b452f',700:'#0a4d34',600:'#106f4c',500:'#10b981',400:'#34d399',100:'#d1fae5',50:'#ecfdf5' } },
+    fontFamily: { sans: ['Inter','system-ui','sans-serif'], mono: ['JetBrains Mono','monospace'] }
+  } } };
+</script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+</head>
+<body class="h-full flex flex-col bg-slate-50 text-slate-800 antialiased font-sans">
+<div class="flex-1 flex flex-col lg:flex-row min-h-0">
+
+<section class="w-full lg:w-7/12 flex flex-col justify-center p-6 sm:p-10 lg:p-12">
+<div class="max-w-lg">
+<div class="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center mb-4">
+<span class="material-symbols-outlined text-2xl text-brand-800">check_circle</span>
+</div>
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 mb-3">Ballot anonymised via one-time token</span>
+<h1 class="text-2xl font-black text-slate-900 tracking-tight mb-2">Your ballot has been recorded</h1>
+<p class="text-sm text-slate-600 mb-6 leading-relaxed">Thank you for voting. Keep this confirmation for your records.</p>
+
+<div class="space-y-3 mb-6">
+<div class="bg-white rounded-xl p-4 shadow-sm">
+<p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider font-mono mb-1.5">Ballot Reference (UUID)</p>
+<div class="flex items-center justify-between gap-2 bg-slate-50 rounded-lg px-3 py-2">
+<code class="text-xs text-slate-700 break-all">{{ ballot_id }}</code>
+</div>
+</div>
+<div class="bg-white rounded-xl p-4 shadow-sm">
+<p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider font-mono mb-1.5">Audit Hash Digest (SHA-256)</p>
+<div class="flex items-center justify-between gap-2 bg-slate-50 rounded-lg px-3 py-2">
+<code class="text-xs text-slate-700 break-all">{{ audit_hash }}</code>
+</div>
+</div>
+</div>
+
+<p class="text-xs text-slate-500 leading-relaxed bg-slate-100/70 rounded-xl p-4">
+This system has no record linking your identity to this ballot — the audit hash above lets anyone verify the tally's integrity without revealing who cast which vote.
+</p>
+</div>
+</section>
+
+<section class="w-full lg:w-5/12 relative min-h-[220px] lg:min-h-full flex flex-col justify-between overflow-hidden bg-brand-900">
+<div class="relative z-10 p-6 sm:p-8 flex flex-col h-full">
+<div class="space-y-3 mt-2">
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/5 border border-white/10 text-[10px] font-mono text-emerald-200 uppercase tracking-wider">MFA-verified voter / ID + Phone OTP Verified</div>
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/5 border border-white/10 text-[10px] font-mono text-emerald-200 uppercase tracking-wider">Tokens anonymised / One-Time Token Scheme</div>
+</div>
+<div class="mt-auto pt-6">
+<p class="text-sm text-emerald-100/90 leading-relaxed max-w-xs">
+Your ballot reference and audit hash are the only things tying this page to a vote — anyone can check them against the public tally page, nobody can trace them back to you.
+</p>
+</div>
+</div>
+</section>
+</div>
+
+<footer class="w-full bg-[#031c13] border-t border-[#0d4a34] px-6 py-3.5 text-xs text-slate-400 font-mono flex flex-col md:flex-row items-center justify-between gap-3 shrink-0">
+<div class="text-center md:text-left text-[11px] leading-relaxed">
+© 2026 Kenyan Electronic Voting System (student project).
+<span class="text-emerald-400 font-medium">Final-year academic proof-of-concept — not affiliated with IEBC.</span>
+</div>
+<div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[11px]">
+<span class="inline-flex items-center space-x-1 text-emerald-400 font-semibold">EVS-NODE-01</span>
+<span class="inline-flex items-center space-x-1 text-emerald-400 font-semibold">TLS 1.3</span>
+</div>
+</footer>
+</body>
+</html>

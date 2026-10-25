@@ -1,25 +1,41 @@
-{% extends "base.html" %}
-{% block title %}Verify Chain Integrity &mdash; Auditor Dashboard{% endblock %}
-{% block content %}
-  <h1>Verify chain integrity</h1>
-  <p class="badge">FR-AUD-02 &mdash; pure hash-chain walk over AuditLog's own columns</p>
+{% extends "auditors/_shell.html" %}
+{% block title %}Verify Chain Integrity — Auditor Dashboard{% endblock %}
+{% block dashboard_title %}Verify Chain Integrity{% endblock %}
 
-  {% if result.intact %}
-    <p class="badge">Chain intact</p>
-  {% else %}
-    <p class="badge">Chain broken</p>
-  {% endif %}
+{% block dashboard_content %}
+<div class="pb-6 border-b border-gray-200 mb-6">
+<h2 class="text-2xl lg:text-3xl font-extrabold text-gray-900 tracking-tight">Verify chain integrity</h2>
+<p class="text-sm text-gray-500 mt-1">FR-AUD-02 — pure hash-chain walk over AuditLog's own columns.</p>
+</div>
 
-  <p>{{ result.summary }}</p>
+<div class="bg-white rounded-2xl p-6 md:p-8 border border-gray-200/80 shadow-sm mb-6">
+<div class="flex items-center gap-3.5 mb-4">
+{% if result.intact %}
+<div class="w-11 h-11 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0">
+<svg class="w-6 h-6 text-brand-700" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</div>
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">Chain intact</span>
+{% else %}
+<div class="w-11 h-11 rounded-full bg-rose-50 flex items-center justify-center flex-shrink-0">
+<svg class="w-6 h-6 text-rose-600" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" viewbox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M15 9l-6 6M9 9l6 6"></path></svg>
+</div>
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">Chain broken</span>
+{% endif %}
+</div>
+<p class="text-sm text-gray-700 leading-relaxed">{{ result.summary }}</p>
 
-  {% if not result.intact and result.break_log_id %}
-    <ul>
-      <li>Broken at log_id: <strong>{{ result.break_log_id }}</strong></li>
-      <li>Timestamp: {{ result.break_timestamp }}</li>
-      <li>Expected previous_hash: <code>{{ result.expected_previous_hash }}</code></li>
-      <li>Actual previous_hash: <code>{{ result.actual_previous_hash }}</code></li>
-    </ul>
-  {% endif %}
+{% if not result.intact and result.break_log_id %}
+<div class="mt-5 rounded-xl border border-rose-100 bg-rose-50/60 p-5 space-y-2">
+<p class="text-xs text-gray-700"><span class="font-bold text-gray-900">Broken at log_id:</span> {{ result.break_log_id }}</p>
+<p class="text-xs text-gray-700"><span class="font-bold text-gray-900">Timestamp:</span> {{ result.break_timestamp }}</p>
+<p class="text-xs text-gray-700"><span class="font-bold text-gray-900">Expected previous_hash:</span> <code class="bg-white rounded px-1.5 py-0.5 border border-gray-200 break-all">{{ result.expected_previous_hash }}</code></p>
+<p class="text-xs text-gray-700"><span class="font-bold text-gray-900">Actual previous_hash:</span> <code class="bg-white rounded px-1.5 py-0.5 border border-gray-200 break-all">{{ result.actual_previous_hash }}</code></p>
+</div>
+{% endif %}
+</div>
 
-  <a class="btn btn-secondary" href="{% url 'auditors:dashboard' %}">Back to dashboard</a>
+<a class="inline-flex items-center gap-2 text-sm font-semibold text-brand-800 hover:text-brand-600" href="{% url 'auditors:dashboard' %}">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M10 19l-7-7m0 0l7-7m-7 7h18" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+Back to dashboard
+</a>
 {% endblock %}

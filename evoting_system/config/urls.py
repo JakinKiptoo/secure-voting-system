@@ -21,8 +21,12 @@ about the anonymous Voter/OTP flow changes.
 Thread D, Part A: the site root ("") now renders a pure navigational
 landing page (config/views.py::home, templates/home.html) with no
 authentication of its own -- just links to voters:credentials and
-admin:login, both otherwise unchanged. No tally/public verification
-URLs yet (Sprint 4).
+admin:login, both otherwise unchanged.
+Sprint 4: the Tally and Verification Module, mounted at /tally/
+(FR-EL-03, FR-P-01 to FR-P-03) -- the public, unauthenticated
+verification page and the role-gated publish-results action (see
+tally/urls.py). FR-P-01's machine-readable counterpart is
+/api/tally/<election_id>/ (DRF, registered in api/urls.py).
 """
 
 from django.contrib import admin
@@ -42,6 +46,7 @@ urlpatterns = [
     path("ballots/", include("ballots.urls")),
     path("officials/", include("officials.urls")),
     path("auditors/", include("auditors.urls")),
+    path("tally/", include("tally.urls")),
     path("post-login/", post_login_redirect_view, name="post_login_redirect"),
     path("post-login/choose/", post_login_choose_view, name="post_login_choose"),
 ]

@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block title %}Verify &mdash; {{ payload.election_title }}{% endblock %}
+{% block content %}
+  <h1>{{ payload.election_title }}</h1>
+  <p class="badge">Public verification &mdash; no sign-in required</p>
+  <p class="badge">{{ payload.election_status }}</p>
+
+  {% if not payload.available %}
+    <h2>Results not yet published</h2>
+    <p>{{ payload.reason_unavailable }}</p>
+    <p>
+      This system never shows an empty or zero tally for an election
+      whose results haven't been published &mdash; that could be
+      mistaken for a real result. Check back once an official or
+      auditor has published this election's results.
+    </p>
+
+  {% else %}
+    <div class="stat-card-row">
+      <div class="stat-card">
+        <p class="stat-card__label">Total ballots cast</p>
+        <p class="stat-card__value">{{ payload.total_ballots }}</p>
+      </div>
+      <div class="stat-card">
+        <p class="stat-card__label">Published</p>
+        <p class="stat-card__value stat-card__value--small">{{ payload.published_at }}</p>
+      </div>
+      <div class="stat-card">
+        <p class="stat-card__label">Audit chain, at publish</p>
+        <p class="stat-card__value stat-card__value--small">
+          {% if payload.verification.chain_intact_at_publish %}Intact{% else %}BROKEN{% endif %}
+          ({{ payload.verification.chain_entries_checked_at_publish }} entries)
+        </p>
+      </div>
+    </div>
+
+    <h2>Candidate results</h2>
+    <table>
+      <thead>
+        <tr><th>Candidate</th><th>Votes</th></tr>
+      </thead>
+      <tbody>
+        {% for row in payload.candidate_results %}
+          <tr><td>{{ row.name }}</td><td>{{ row.count }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <h2>Is this checkable without being a cryptographer?</h2>
+    <p>Three independent checks, explained in plain language:</p>
+
+    <h3>1. Do the numbers add up?</h3>
+    <p>
+      {% for row in payload.candidate_results %}{{ row.count }}{% if not forloop.last %} + {% endif %}{% endfor %}
+      = {{ payload.total_ballots }}.
+      {% if payload.verification.aggregation_holds %}
+        <strong>&#10003; Confirmed</strong> &mdash; the published candidate counts sum to the published total.
+        You can check this yourself: it's just addition.
+      {% else %}
+        <strong>&#10007; DOES NOT MATCH</strong> &mdash; the published candidate counts do not sum to the published total.
+      {% endif %}
+    </p>
+
+    <h3>2. Was the published total tampered with?</h3>
+    <p>
+      The total is sealed with two independent mathematical commitments
+      (one per "pairing group," if you know the term &mdash; if not,
+      think of them as two separate locked boxes that can only both be
+      opened by the same number). A cryptographic check called a
+      "pairing" confirms both boxes really do hold the same number,
+      without needing you to trust this server's arithmetic.
+      {% if payload.verification.pairing_holds %}
+        <strong>&#10003; Confirmed</strong> &mdash; both commitments encode the same total.
+      {% else %}
+        <strong>&#10007; FAILED</strong> &mdash; the two commitments do not encode the same total.
+      {% endif %}
+    </p>
+
+    <h3>3. Has anything changed since publication?</h3>
+    <p>
+      This election's own entries in the tamper-evident audit log are
+      fingerprinted at the moment results are published. Re-checking
+      that fingerprint now, and re-walking the full audit chain, shows
+      whether anything has changed since.
+    </p>
+    {% if payload.verification.deep_verified %}
+      <ul>
+        <li>
+          This election's audit entries:
+          {% if payload.verification.audit_entries_unchanged %}<strong>&#10003; unchanged since publication</strong>{% else %}<strong>&#10007; CHANGED since publication</strong>{% endif %}
+        </li>
+        <li>
+          Published tally still matches live ballot records:
+          {% if payload.verification.live_counts_match %}<strong>&#10003; matches</strong>{% else %}<strong>&#10007; MISMATCH</strong>{% endif %}
+        </li>
+        <li>
+          Full audit chain, right now:
+          {% if payload.verification.chain_currently_intact %}<strong>&#10003; intact</strong>{% else %}<strong>&#10007; BROKEN</strong>{% endif %}
+        </li>
+      </ul>
+      <p><strong>Overall: {% if payload.verification.fully_verified %}&#10003; fully verified{% else %}&#10007; one or more checks failed{% endif %}</strong></p>
+    {% else %}
+      <p>
+        This page is showing the outcome recorded at publish time, for a
+        fast page load. <a href="?reverify=1">Run the full independent
+        re-check now</a> (re-runs the actual cryptographic check live;
+        takes about a second).
+      </p>
+    {% endif %}
+
+    <h2>What this page cannot show you</h2>
+    <p>
+      Nothing above (or anywhere else this system builds) can be used to
+      work out how any individual person voted. Ballot records carry no
+      reference to any voter or session at all &mdash; that link is
+      destroyed the moment a ballot is recorded, before this tally is
+      ever computed. This page only ever shows aggregate counts and
+      mathematical commitments to those counts, never anything
+      per-ballot.
+    </p>
+
+    <details>
+      <summary>Raw proof and audit data (for independent/technical verification)</summary>
+      <h3>Pairing-based proof</h3>
+      <pre>{{ payload.proof }}</pre>
+      <h3>This election's audit log entries</h3>
+      <table>
+        <thead><tr><th>log_id</th><th>timestamp</th><th>ballot_hash</th><th>previous_hash</th></tr></thead>
+        <tbody>
+          {% for entry in payload.audit_entries %}
+            <tr>
+              <td>{{ entry.log_id }}</td>
+              <td>{{ entry.timestamp }}</td>
+              <td><code>{{ entry.ballot_hash }}</code></td>
+              <td><code>{{ entry.previous_hash }}</code></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </details>
+  {% endif %}
+
+  <p><a href="{% url 'tally:index' %}">&larr; All elections</a></p>
+{% endblock %}

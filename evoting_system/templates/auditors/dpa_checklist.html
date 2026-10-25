@@ -1,22 +1,27 @@
-{% extends "base.html" %}
-{% block title %}DPA 2019 Compliance Checklist &mdash; Auditor Dashboard{% endblock %}
-{% block content %}
-  <h1>DPA 2019 compliance checklist</h1>
-  <p class="badge">FR-AUD-03</p>
+{% extends "auditors/_shell.html" %}
+{% block title %}DPA 2019 Compliance Checklist — Auditor Dashboard{% endblock %}
+{% block dashboard_title %}DPA 2019 Checklist{% endblock %}
 
-  {% if checklist_available %}
-    {# Intentionally no real-data branch yet -- Sprint 5 has not produced #}
-    {# checklist content in this repository. See auditors/views.py. #}
-  {% else %}
-    <p class="badge">Sprint 5 not yet complete</p>
-    <p>
-      The Data Protection Act, 2019 compliance checklist is produced in
-      Sprint 5 of the project roadmap (see CLAUDE.md). That sprint has
-      not yet run, so there is no real checklist content to show here
-      yet &mdash; this page intentionally does not invent checklist
-      items in its place.
-    </p>
-  {% endif %}
+{% block dashboard_content %}
+<div class="pb-6 border-b border-gray-200 mb-6">
+<h2 class="text-2xl lg:text-3xl font-extrabold text-gray-900 tracking-tight">DPA 2019 compliance checklist</h2>
+<p class="text-sm text-gray-500 mt-1">FR-AUD-03</p>
+</div>
 
-  <a class="btn btn-secondary" href="{% url 'auditors:dashboard' %}">Back to dashboard</a>
+{% if checklist_available %}
+{# Intentionally no real-data branch yet -- Sprint 5 has not produced #}
+{# checklist content in this repository. See auditors/views.py. #}
+{% else %}
+<div class="bg-white rounded-2xl p-6 md:p-8 border border-gray-200/80 shadow-sm mb-6">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 mb-4">Sprint 5 not yet complete</span>
+<p class="text-sm text-gray-700 leading-relaxed">
+The Data Protection Act, 2019 compliance checklist is produced in Sprint 5 of the project roadmap (see CLAUDE.md). That sprint has not yet run, so there is no real checklist content to show here yet — this page intentionally does not invent checklist items in its place.
+</p>
+</div>
+{% endif %}
+
+<a class="inline-flex items-center gap-2 text-sm font-semibold text-brand-800 hover:text-brand-600" href="{% url 'auditors:dashboard' %}">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M10 19l-7-7m0 0l7-7m-7 7h18" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+Back to dashboard
+</a>
 {% endblock %}

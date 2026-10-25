@@ -7,6 +7,15 @@ psycopg2-binary==2.9.13
 python-decouple==3.8
 cryptography==41.0.7
 
+# Sprint 4 (REQUIREMENTS.md S3: "a pairing-based library for ZKP
+# generation" -- no specific library named there). py_ecc implements
+# the BLS12-381 pairing-friendly curve in pure Python, pip-installable
+# with no compiled system library required (unlike pypbc/charm-crypto,
+# which need libpbc present on the host) -- see tally/crypto.py's
+# module docstring for the full reasoning and what the proof itself
+# does with it.
+py_ecc==8.0.0
+
 # Testing (REQUIREMENTS.md S8)
 pytest==7.4.4
 pytest-django==4.7.0

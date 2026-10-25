@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Public Verification &mdash; Electronic Voting System{% endblock %}
+{% block content %}
+  <h1>Public Verification</h1>
+  <p class="badge">No sign-in required &mdash; open to anyone</p>
+  <p>
+    Every election run on this system is listed below. Once an
+    election's results have been published, its tally, cryptographic
+    proof, and audit log hashes are available here for anyone to
+    check &mdash; no account, no credentials.
+  </p>
+
+  {% if rows %}
+    <table>
+      <thead>
+        <tr>
+          <th>Election</th>
+          <th>Status</th>
+          <th>Results</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr>
+            <td>{{ row.election.title }}</td>
+            <td><span class="badge">{{ row.election.get_status_display }}</span></td>
+            <td>
+              {% if row.has_results %}
+                <a href="{% url 'tally:verify' election_id=row.election.election_id %}">View verification &rarr;</a>
+              {% else %}
+                Not yet published
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No elections have been created yet.</p>
+  {% endif %}
+{% endblock %}

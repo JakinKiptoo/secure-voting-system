@@ -1,41 +1,52 @@
 {% extends "officials/_shell.html" %}
-{% block title %}Candidates &mdash; Officials Dashboard{% endblock %}
+{% block title %}Candidates — Officials Dashboard{% endblock %}
 {% block dashboard_title %}Candidates{% endblock %}
 
 {% block dashboard_content %}
-  <h1>Candidates</h1>
+<div class="pb-6 border-b border-gray-200 mb-6">
+<h2 class="text-2xl lg:text-3xl font-extrabold text-gray-900 tracking-tight">Candidates</h2>
+</div>
 
-  {% if elections %}
-    <form method="get">
-      <label for="election">Election</label>
-      <select name="election" id="election" onchange="this.form.submit()">
-        {% for e in elections %}
-          <option value="{{ e.election_id }}"{% if selected_election and e.election_id == selected_election.election_id %} selected{% endif %}>
-            {{ e.title }} ({{ e.get_status_display }})
-          </option>
-        {% endfor %}
-      </select>
-      <noscript><button type="submit" class="btn btn-secondary">Go</button></noscript>
-    </form>
-  {% else %}
-    <p>No elections have been created yet.</p>
-  {% endif %}
+{% if elections %}
+<div class="bg-white rounded-2xl p-5 border border-gray-200/80 shadow-sm mb-6">
+<form method="get">
+<label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5" for="election">Election</label>
+<select class="w-full sm:w-auto rounded-xl border border-gray-200 text-sm px-3.5 py-2.5 focus:border-[#093324] focus:ring-[#093324]" id="election" name="election" onchange="this.form.submit()">
+{% for e in elections %}
+<option value="{{ e.election_id }}"{% if selected_election and e.election_id == selected_election.election_id %} selected{% endif %}>{{ e.title }} ({{ e.get_status_display }})</option>
+{% endfor %}
+</select>
+<noscript><button class="mt-2 inline-flex items-center justify-center px-5 py-2 rounded-xl border-2 border-[#093324] text-[#093324] font-semibold text-sm" type="submit">Go</button></noscript>
+</form>
+</div>
+{% else %}
+<div class="bg-white rounded-2xl p-8 border border-gray-200/80 shadow-sm text-center">
+<p class="text-sm text-gray-500">No elections have been created yet.</p>
+</div>
+{% endif %}
 
-  {% if selected_election %}
-    <h2>{{ selected_election.title }}</h2>
-    <p class="badge">{{ selected_election.get_status_display }}</p>
+{% if selected_election %}
+<div class="flex items-center gap-3 flex-wrap mb-5">
+<h3 class="text-xl font-extrabold text-gray-900 tracking-tight">{{ selected_election.title }}</h3>
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">{{ selected_election.get_status_display }}</span>
+</div>
 
-    {% if candidates %}
-      <ul>
-        {% for candidate in candidates %}
-          <li>
-            <strong>{{ candidate.name }}</strong>{% if candidate.party %} &mdash; {{ candidate.party }}{% endif %}
-            {% if candidate.biography %}<br><span>{{ candidate.biography }}</span>{% endif %}
-          </li>
-        {% endfor %}
-      </ul>
-    {% else %}
-      <p>No candidates registered for this election.</p>
-    {% endif %}
-  {% endif %}
+{% if candidates %}
+<div class="bg-white rounded-2xl border border-gray-200/80 shadow-sm divide-y divide-gray-100">
+{% for candidate in candidates %}
+<div class="flex items-start gap-4 p-5">
+<div class="w-10 h-10 rounded-full bg-[#e1f0e9] text-[#093324] flex items-center justify-center font-bold text-sm shrink-0">{{ candidate.name|slice:":1" }}</div>
+<div>
+<p class="text-sm font-bold text-gray-900">{{ candidate.name }}{% if candidate.party %} <span class="font-medium text-gray-500">— {{ candidate.party }}</span>{% endif %}</p>
+{% if candidate.biography %}<p class="text-sm text-gray-600 mt-1 leading-relaxed">{{ candidate.biography }}</p>{% endif %}
+</div>
+</div>
+{% endfor %}
+</div>
+{% else %}
+<div class="bg-white rounded-2xl p-8 border border-gray-200/80 shadow-sm text-center">
+<p class="text-sm text-gray-500">No candidates registered for this election.</p>
+</div>
+{% endif %}
+{% endif %}
 {% endblock %}

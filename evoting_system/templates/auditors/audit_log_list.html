@@ -1,60 +1,72 @@
-{% extends "base.html" %}
-{% block title %}Audit Log &mdash; Auditor Dashboard{% endblock %}
-{% block content %}
-  <h1>Audit Log</h1>
-  <p class="badge">FR-AUD-01 &mdash; AuditLog entries only, no Ballot/Voter/Session detail</p>
+{% extends "auditors/_shell.html" %}
+{% block title %}Audit Log — Auditor Dashboard{% endblock %}
+{% block dashboard_title %}Audit Log{% endblock %}
 
-  <form method="get">
-    <label for="action_type">Action type</label>
-    <input type="text" id="action_type" name="action_type" value="{{ selected_action_type }}">
+{% block dashboard_content %}
+<div class="pb-6 border-b border-gray-200 mb-6">
+<h2 class="text-2xl lg:text-3xl font-extrabold text-gray-900 tracking-tight">Audit Log</h2>
+<p class="text-sm text-gray-500 mt-1">FR-AUD-01 — AuditLog entries only, no Ballot/Voter/Session detail.</p>
+</div>
 
-    <label for="date_from">From</label>
-    <input type="date" id="date_from" name="date_from" value="{{ date_from }}">
+<div class="bg-white rounded-2xl p-5 border border-gray-200/80 shadow-sm mb-6">
+<form class="flex flex-wrap items-end gap-3" method="get">
+<div>
+<label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5" for="action_type">Action type</label>
+<input class="rounded-xl border border-gray-200 text-sm px-3.5 py-2.5 focus:border-brand-700 focus:ring-brand-700" id="action_type" name="action_type" type="text" value="{{ selected_action_type }}">
+</div>
+<div>
+<label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5" for="date_from">From</label>
+<input class="rounded-xl border border-gray-200 text-sm px-3.5 py-2.5 focus:border-brand-700 focus:ring-brand-700" id="date_from" name="date_from" type="date" value="{{ date_from }}">
+</div>
+<div>
+<label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5" for="date_to">To</label>
+<input class="rounded-xl border border-gray-200 text-sm px-3.5 py-2.5 focus:border-brand-700 focus:ring-brand-700" id="date_to" name="date_to" type="date" value="{{ date_to }}">
+</div>
+<button class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-brand-800 hover:bg-brand-900 text-white font-semibold text-sm transition" type="submit">Filter</button>
+<a class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl border-2 border-brand-800 text-brand-800 hover:bg-brand-50 font-semibold text-sm transition" href="{% url 'auditors:audit_log_list' %}">Clear</a>
+</form>
+</div>
 
-    <label for="date_to">To</label>
-    <input type="date" id="date_to" name="date_to" value="{{ date_to }}">
+{% if page_obj.object_list %}
+<div class="bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden mb-6">
+<table class="w-full text-sm">
+<thead class="bg-gray-50 border-b border-gray-200">
+<tr class="text-xs font-bold text-gray-500 uppercase tracking-wider">
+<th class="text-left px-5 py-3">Log ID</th>
+<th class="text-left px-5 py-3">Timestamp</th>
+<th class="text-left px-5 py-3">Action type</th>
+<th class="text-left px-5 py-3">Ballot hash</th>
+<th class="text-left px-5 py-3">Previous hash</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-gray-100 font-mono">
+{% for entry in page_obj.object_list %}
+<tr>
+<td class="px-5 py-4 text-gray-900 font-semibold">{{ entry.log_id }}</td>
+<td class="px-5 py-4 text-gray-600">{{ entry.timestamp }}</td>
+<td class="px-5 py-4 text-gray-600">{{ entry.action_type }}</td>
+<td class="px-5 py-4 text-gray-600"><code class="break-all">{{ entry.ballot_hash }}</code></td>
+<td class="px-5 py-4 text-gray-600"><code class="break-all">{{ entry.previous_hash }}</code></td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
 
-    <button type="submit" class="btn btn-primary">Filter</button>
-    <a class="btn btn-secondary" href="{% url 'auditors:audit_log_list' %}">Clear</a>
-  </form>
-
-  {% if page_obj.object_list %}
-    <table>
-      <thead>
-        <tr>
-          <th>Log ID</th>
-          <th>Timestamp</th>
-          <th>Action type</th>
-          <th>Ballot hash</th>
-          <th>Previous hash</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for entry in page_obj.object_list %}
-          <tr>
-            <td>{{ entry.log_id }}</td>
-            <td>{{ entry.timestamp }}</td>
-            <td>{{ entry.action_type }}</td>
-            <td><code>{{ entry.ballot_hash }}</code></td>
-            <td><code>{{ entry.previous_hash }}</code></td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-
-    <p>
-      Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-      ({{ page_obj.paginator.count }} entr{{ page_obj.paginator.count|pluralize:"y,ies" }} total)
-    </p>
-    <p>
-      {% if page_obj.has_previous %}
-        <a class="btn btn-secondary" href="?{% if selected_action_type %}action_type={{ selected_action_type }}&{% endif %}{% if date_from %}date_from={{ date_from }}&{% endif %}{% if date_to %}date_to={{ date_to }}&{% endif %}page={{ page_obj.previous_page_number }}">Previous</a>
-      {% endif %}
-      {% if page_obj.has_next %}
-        <a class="btn btn-secondary" href="?{% if selected_action_type %}action_type={{ selected_action_type }}&{% endif %}{% if date_from %}date_from={{ date_from }}&{% endif %}{% if date_to %}date_to={{ date_to }}&{% endif %}page={{ page_obj.next_page_number }}">Next</a>
-      {% endif %}
-    </p>
-  {% else %}
-    <p>No audit log entries match these filters.</p>
-  {% endif %}
+<div class="flex items-center justify-center gap-4 text-sm text-gray-600">
+<span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }} ({{ page_obj.paginator.count }} entr{{ page_obj.paginator.count|pluralize:"y,ies" }} total)</span>
+</div>
+<div class="flex items-center justify-center gap-4 text-sm mt-2">
+{% if page_obj.has_previous %}
+<a class="font-semibold text-brand-800 hover:underline" href="?{% if selected_action_type %}action_type={{ selected_action_type }}&{% endif %}{% if date_from %}date_from={{ date_from }}&{% endif %}{% if date_to %}date_to={{ date_to }}&{% endif %}page={{ page_obj.previous_page_number }}">← Previous</a>
+{% endif %}
+{% if page_obj.has_next %}
+<a class="font-semibold text-brand-800 hover:underline" href="?{% if selected_action_type %}action_type={{ selected_action_type }}&{% endif %}{% if date_from %}date_from={{ date_from }}&{% endif %}{% if date_to %}date_to={{ date_to }}&{% endif %}page={{ page_obj.next_page_number }}">Next →</a>
+{% endif %}
+</div>
+{% else %}
+<div class="bg-white rounded-2xl p-8 border border-gray-200/80 shadow-sm text-center">
+<p class="text-sm text-gray-500">No audit log entries match these filters.</p>
+</div>
+{% endif %}
 {% endblock %}
