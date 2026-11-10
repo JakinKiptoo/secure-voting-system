@@ -32,6 +32,11 @@
 Register with your National ID, full name, and phone number.
 </p>
 
+{# FR-DPA-01: privacy notice shown before collection (no consent checkbox, no form change). #}
+<div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 mb-5" data-testid="privacy-summary">
+<p class="text-xs text-slate-600 leading-relaxed">This prototype stores your National ID only as a hash, plus your name and phone number. It is an academic project that uses test data only, so please do not enter real details. <a class="font-semibold text-[#0E3929] hover:underline" href="{% url 'voters:privacy' %}">Read the full privacy notice</a> before you register.</p>
+</div>
+
 <form class="space-y-4" method="post" novalidate>
 {% csrf_token %}
 {% if form.non_field_errors %}

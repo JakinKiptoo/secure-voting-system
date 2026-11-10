@@ -1,10 +1,15 @@
 # SETUP.md — Local Development Setup
 
-Covers Sprints 1–3: the six models, Django admin CRUD for FR-A-01 to
-FR-A-04, the Voter Authentication Module (FR-V-00 to FR-V-03, FR-S-01,
-FR-G-01), and the Ballot Casting Module including the insert-only
-AuditLog role (FR-V-04 to FR-V-08, FR-DB-01). No ZKP, tally, or public
-verification endpoint yet — see CLAUDE.md for the sprint roadmap.
+Covers Sprints 1–4: the six models (plus Sprint 4's `tally.ElectionResult`),
+Django admin CRUD for FR-A-01 to FR-A-04, the Voter Authentication
+Module (FR-V-00 to FR-V-03, FR-S-01, FR-G-01), the Ballot Casting
+Module including the insert-only AuditLog role (FR-V-04 to FR-V-08,
+FR-DB-01), and the Tally and Verification Module (FR-EL-03, FR-P-01 to
+FR-P-03) — tally computation, the pairing-based (BLS12-381, via
+`py_ecc`) ZKP, and the public, unauthenticated verification endpoint
+at `/tally/<election_id>/` (HTML) and `/api/tally/<election_id>/`
+(JSON). Security/compliance testing (Burp Suite, SQLMap, the DPA-2019
+checklist) is still Sprint 5 — see CLAUDE.md for the sprint roadmap.
 
 ## Prerequisites
 
@@ -153,12 +158,38 @@ that log line silently — see `voters/views.py` docstring.
 pytest
 ```
 
-26 tests as of Sprint 3 (see `REQUIREMENTS.md` §8 for the full
-testing strategy Sprint 5 builds toward — this is functional
-correctness coverage, not the security/compliance pass). Tests run
-against the real PostgreSQL database configured in `.env` (no sqlite
-anywhere), so steps 2–3 above must be done first; step 6 is only
-needed for the one FR-DB-01 test to run instead of skip.
+146 tests as of Sprint 5 (see `REQUIREMENTS.md` §8 for the full
+testing strategy). Tests run against the real PostgreSQL database
+configured in `.env` (no sqlite anywhere), so steps 2–3 above must be
+done first; step 6 is only needed for the one FR-DB-01 test to run
+instead of skip.
+
+**Known local setup gap (discovered running this project's own test
+suite, Sprint 5)**: `pytest-django` needs its role to hold `CREATEDB`
+so it can spin up and tear down a throwaway `test_<DB_NAME>` database
+for every run — without it, `pytest` fails immediately with a
+Postgres permission error before a single test runs, not a normal
+test failure. Step 3 above already includes `CREATEDB` on `CREATE
+USER evoting_user ...`, so a fresh setup following this file in order
+should be fine — but if you're reusing a role that already existed
+before this file's step 3 (e.g. one created by an older version of
+this doc, or by hand), it may be missing the privilege. Confirm with:
+
+```bash
+sudo -u postgres psql -c "\du"
+```
+
+Look for `Create DB` in that role's Attributes column. If it's not
+there:
+
+```bash
+sudo -u postgres psql -c "ALTER ROLE evoting_user WITH CREATEDB;"
+```
+
+(substitute your actual `DB_USER` if different). This has silently
+blocked the test suite from running at all more than once during this
+project's own development, and would do the same to an examiner
+running it for the first time without this note.
 
 ## Known TODOs carried into later sprints
 

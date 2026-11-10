@@ -15,6 +15,7 @@ from django.shortcuts import render
 
 from auditlog.models import AuditLog
 
+from .dpa_checklist import DPA_CHECKLIST, checklist_summary
 from .permissions import auditor_required
 from .services import verify_chain_integrity
 
@@ -100,16 +101,19 @@ def dpa_checklist_view(request):
     """
     FR-AUD-03: DPA-2019 compliance checklist status.
 
-    Sprint 5 (per CLAUDE.md's roadmap) has not yet produced any actual
-    checklist content in this repository (confirmed by grepping
-    SETUP.md and the handover docs for one -- nothing exists), so this
-    renders a clear "Sprint 5 not yet complete" placeholder rather than
-    fabricating checklist items. When Sprint 5 does add real checklist
-    data/a real source for it, this view should be updated to read and
-    render it instead of this placeholder branch.
+    Sprint 5: now wired to the real checklist (auditors/dpa_checklist.py)
+    instead of the "Sprint 5 not yet complete" placeholder this view
+    rendered through Sprint 4. `checklist_available` stays as the flag
+    the template already branches on -- it's just `True` now, with
+    `checklist_items`/`checklist_summary` supplying the real content
+    instead of nothing.
     """
     return render(
         request,
         "auditors/dpa_checklist.html",
-        {"checklist_available": False},
+        {
+            "checklist_available": True,
+            "checklist_items": DPA_CHECKLIST,
+            "checklist_summary": checklist_summary(),
+        },
     )

@@ -32,6 +32,8 @@ from voter_sessions.services import VOTING_TOKEN_SESSION_KEY, issue_session
 from voters.crypto_utils import sha256_hex
 from voters.models import Voter
 
+from tally.services import get_verification_payload, publish_results
+
 from . import views as officials_views
 from .permissions import OFFICIAL_GROUP_NAME, is_official
 
@@ -39,6 +41,7 @@ DASHBOARD_URL_NAME = "officials:dashboard"
 OVERVIEW_URL_NAME = "officials:overview"
 ELECTIONS_URL_NAME = "officials:elections"
 CANDIDATES_URL_NAME = "officials:candidates"
+RESULTS_URL_NAME = "officials:results"
 
 
 def _make_official(django_user_model, username="official1"):
@@ -697,3 +700,202 @@ def test_elections_view_no_voter_session_ballot_detail_leaks(client, django_user
     page_obj = response.context["page_obj"]
     assert all(isinstance(e, Election) for e in page_obj.object_list)
     assert election.title in body
+
+
+# ---------------------------------------------------------------------
+# FR-OFF-05 (EXTENSIONS_ROADMAP.md): officials-facing results page.
+# Extension on top of the core system, not a change to FR-P-01/02/03
+# or to Sprint 4's tally logic -- these tests exist to prove exactly
+# that: no new tally computation, the same publish gate as the public
+# page, and no new leak surface.
+# ---------------------------------------------------------------------
+
+
+def test_results_view_reuses_get_verification_payload_object_identity():
+    """
+    officials/views.py::results_view must call the *same function
+    object* tally/views.py::public_verify_view calls -- not a
+    reimplementation, not a copy-pasted fork. Same style of proof as
+    tally/tests.py::test_chain_walk_is_shared_not_duplicated: asserts
+    object identity, so a future accidental fork of the tally logic
+    would fail this test immediately rather than silently diverging.
+    """
+    assert officials_views.get_verification_payload is get_verification_payload
+
+
+@pytest.mark.django_db
+def test_results_view_requires_official_role(client, django_user_model):
+    """Same three-actor access-control rigor as the other officials
+    views: anonymous and staff-without-the-Official-group are both
+    rejected."""
+    election, _ = _make_open_election_with_candidate("Access Control Election")
+    url = reverse(RESULTS_URL_NAME, args=[election.election_id])
+
+    response = client.get(url)
+    assert response.status_code in (302, 403)
+
+    client.force_login(_make_staff_non_official(django_user_model))
+    response = client.get(url)
+    assert response.status_code in (302, 403)
+
+
+@pytest.mark.django_db
+def test_results_view_open_election_shows_no_results(client, django_user_model):
+    """
+    Requirement 3: an OPEN election shows no results at all -- not a
+    "results pending" message with numbers attached, nothing that
+    could be mistaken for a running/live count.
+    """
+    client.force_login(_make_official(django_user_model))
+    election, candidate = _make_open_election_with_candidate("Open Election")
+
+    response = client.get(reverse(RESULTS_URL_NAME, args=[election.election_id]))
+    body = response.content.decode()
+
+    assert response.status_code == 200
+    assert response.context["payload"].available is False
+    assert response.context["winner"] is None
+    assert candidate.name not in body
+    assert "not yet published" not in body.lower()
+
+
+@pytest.mark.django_db
+def test_results_view_closed_unpublished_shows_not_yet_published(client, django_user_model):
+    """
+    Requirement 2: a CLOSED-but-not-yet-published election must show
+    "results not yet published", reusing FR-EL-03's existing publish
+    gate -- not a second code path that peeks at the tally early.
+    get_verification_payload() itself is what returns
+    available=False/reason_unavailable here; this test is really
+    confirming results_view adds no path around that.
+    """
+    client.force_login(_make_official(django_user_model))
+    election, candidate = _make_open_election_with_candidate("Unpublished Election")
+    election.close_voting()
+
+    response = client.get(reverse(RESULTS_URL_NAME, args=[election.election_id]))
+    body = response.content.decode()
+    payload = response.context["payload"]
+
+    assert response.status_code == 200
+    assert payload.available is False
+    assert "not been published yet" in payload.reason_unavailable
+    assert "not yet published" in body.lower()
+    assert response.context["winner"] is None
+    # Not previewed early: no per-candidate name/count anywhere in the body.
+    assert candidate.name not in body
+
+
+@pytest.mark.django_db
+def test_results_view_closed_published_shows_counts_and_winner(client, django_user_model):
+    """
+    Requirement 1: for a CLOSED+PUBLISHED election, each candidate's
+    name and vote count are shown, total ballots cast is shown, and
+    the highest-count candidate is highlighted as the winner --
+    without the page viewer having to compare numbers themselves.
+    """
+    client.force_login(_make_official(django_user_model))
+
+    now = timezone.now()
+    election = Election.objects.create(
+        title="Published Results Election", start_date=now, end_date=now + timedelta(hours=1)
+    )
+    runner_up = Candidate.objects.create(election=election, name="Runner Up Rono")
+    winner_candidate = Candidate.objects.create(election=election, name="Winner Wanjiru")
+    election.open_voting()
+
+    for i in range(2):
+        voter = Voter.objects.create(
+            national_id_hash=sha256_hex(f"1000{i}"),
+            full_name=f"Voter {i}",
+            phone_number=f"+25470000000{i}",
+        )
+        session = issue_session(voter)
+        cast_ballot(uuid_token=str(session.uuid_token), candidate_id=runner_up.candidate_id)
+
+    for i in range(5):
+        voter = Voter.objects.create(
+            national_id_hash=sha256_hex(f"2000{i}"),
+            full_name=f"Voter {i}",
+            phone_number=f"+25471000000{i}",
+        )
+        session = issue_session(voter)
+        cast_ballot(uuid_token=str(session.uuid_token), candidate_id=winner_candidate.candidate_id)
+
+    election.close_voting()
+    publish_results(election)
+
+    response = client.get(reverse(RESULTS_URL_NAME, args=[election.election_id]))
+    body = response.content.decode()
+    payload = response.context["payload"]
+    winner = response.context["winner"]
+
+    assert response.status_code == 200
+    assert payload.available is True
+    assert payload.total_ballots == 7
+    assert runner_up.name in body
+    assert winner_candidate.name in body
+    assert "2" in body and "5" in body
+
+    assert winner is not None
+    assert winner["candidate_id"] == str(winner_candidate.candidate_id)
+    assert winner["count"] == 5
+    assert "winner" in body.lower()
+
+    # The winner highlight is just max() over the existing payload --
+    # not a new computation: recompute independently and compare.
+    independent_winner = max(payload.candidate_results, key=lambda c: c["count"])
+    assert winner == independent_winner
+
+
+@pytest.mark.django_db
+def test_results_view_no_voter_session_ballot_detail_leaks(client, django_user_model):
+    """
+    Requirement 4: this introduces no new way to see per-ballot or
+    voter-level data. Same leak-check rigor as Overview/Elections --
+    distinctive values must appear nowhere in the rendered HTML, and
+    no Voter/Session/Ballot model instance anywhere in the context.
+    """
+    client.force_login(_make_official(django_user_model))
+
+    now = timezone.now()
+    election = Election.objects.create(
+        title="Leak Check Results Election", start_date=now, end_date=now + timedelta(hours=1)
+    )
+    candidate = Candidate.objects.create(election=election, name="Leak Check Candidate")
+    election.open_voting()
+
+    distinctive_name = "Zzyzx Nakamura-Odongo"
+    distinctive_phone = "+254799999999"
+    distinctive_national_id = "99998888"
+
+    voter = Voter.objects.create(
+        national_id_hash=sha256_hex(distinctive_national_id),
+        full_name=distinctive_name,
+        phone_number=distinctive_phone,
+    )
+    session = issue_session(voter)
+    distinctive_token = str(session.uuid_token)
+    distinctive_session_pk = str(session.pk)
+
+    result = cast_ballot(uuid_token=distinctive_token, candidate_id=candidate.candidate_id)
+    distinctive_ballot_id = str(result.ballot.ballot_id)
+
+    election.close_voting()
+    publish_results(election)
+
+    response = client.get(reverse(RESULTS_URL_NAME, args=[election.election_id]))
+    body = response.content.decode()
+
+    for leak in [
+        distinctive_name,
+        distinctive_phone,
+        distinctive_national_id,
+        sha256_hex(distinctive_national_id),
+        distinctive_token,
+        distinctive_session_pk,
+        distinctive_ballot_id,
+    ]:
+        assert leak not in body, f"Leaked into rendered HTML: {leak!r}"
+
+    _assert_no_forbidden_instances_in_context(response.context)

@@ -370,20 +370,77 @@ def test_verify_chain_view_renders_break_position(client, django_user_model):
 
 
 # ---------------------------------------------------------------------
-# FR-AUD-03: DPA 2019 checklist -- placeholder only, no fabricated data
+# FR-AUD-03: DPA 2019 checklist -- Sprint 5, real checklist content
 # ---------------------------------------------------------------------
 
 
 @pytest.mark.django_db
-def test_dpa_checklist_shows_sprint5_not_complete_placeholder(client, django_user_model):
+def test_fr_aud03_dpa_checklist_renders_all_ten_real_criteria(client, django_user_model):
+    """
+    Sprint 5: the placeholder is gone -- this view now renders
+    auditors/dpa_checklist.py::DPA_CHECKLIST, not a "not yet complete"
+    message. Confirms all ten numbered criteria actually reach the
+    rendered page (not just the context), so a future edit that drops
+    one from the template without dropping it from the data module
+    would be caught here.
+    """
+    from django.utils.html import escape
+
+    from .dpa_checklist import DPA_CHECKLIST
+
     client.force_login(_make_auditor(django_user_model))
 
     response = client.get(reverse(DPA_CHECKLIST_URL_NAME))
     body = response.content.decode()
 
     assert response.status_code == 200
-    assert response.context["checklist_available"] is False
-    assert "not yet complete" in body.lower()
+    assert response.context["checklist_available"] is True
+    assert len(response.context["checklist_items"]) == 10
+    for item in DPA_CHECKLIST:
+        # escape() because the template autoescapes ("&" in e.g.
+        # "Lawful basis & purpose limitation" renders as "&amp;").
+        assert escape(item["criterion"]) in body
+
+
+@pytest.mark.django_db
+def test_fr_aud03_dpa_checklist_honestly_reports_unmet_criteria(client, django_user_model):
+    """
+    This checklist is only trustworthy as Chapter 5 evidence if it
+    doesn't quietly mark a real gap as satisfied. Confirms the one
+    criterion this proof-of-concept still genuinely does not
+    implement (no data-subject self-service, item 8) is reported as
+    "not_met", not papered over as "met".
+
+    FR-DPA-01 update: item 7 (privacy notice at collection) moved from
+    "not_met" to "met" when the notice was built, so the expected
+    unmet set is now exactly {8} and the counts are 9 met / 1 not met
+    (previously {7, 8}, 8 met / 2 not met).
+    """
+    from .dpa_checklist import DPA_CHECKLIST
+
+    client.force_login(_make_auditor(django_user_model))
+
+    response = client.get(reverse(DPA_CHECKLIST_URL_NAME))
+
+    not_met = {item["number"] for item in response.context["checklist_items"] if item["status"] == "not_met"}
+    assert not_met == {8}
+    assert response.context["checklist_summary"]["not_met"] == 1
+    assert response.context["checklist_summary"]["met"] == 9
+    # Every item in the underlying data module names a real status --
+    # no accidental typo/missing field that would silently render blank.
+    assert all(item["status"] in ("met", "partial", "not_met") for item in DPA_CHECKLIST)
+
+
+@pytest.mark.django_db
+def test_fr_aud03_dpa_checklist_requires_auditor_role(client, django_user_model):
+    """Access-control leak test, same pattern as every other auditor
+    view: an anonymous/unauthenticated request must not reach the
+    checklist (which, unlike the AuditLog browser, has no per-row
+    Voter/Session/Ballot data to leak, but still shouldn't be publicly
+    reachable without the auditor role -- it isn't FR-P-01's public
+    endpoint)."""
+    response = client.get(reverse(DPA_CHECKLIST_URL_NAME))
+    assert response.status_code in (302, 403)
 
 
 # ---------------------------------------------------------------------

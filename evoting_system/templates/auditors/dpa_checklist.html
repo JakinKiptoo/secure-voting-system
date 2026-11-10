@@ -9,8 +9,31 @@
 </div>
 
 {% if checklist_available %}
-{# Intentionally no real-data branch yet -- Sprint 5 has not produced #}
-{# checklist content in this repository. See auditors/views.py. #}
+<div class="bg-white rounded-2xl p-6 md:p-8 border border-gray-200/80 shadow-sm mb-6 flex flex-wrap items-center gap-3">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">{{ checklist_summary.met }} of {{ checklist_summary.total }} criteria met</span>
+{% if checklist_summary.partial %}<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">{{ checklist_summary.partial }} partial</span>{% endif %}
+{% if checklist_summary.not_met %}<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-800 border border-rose-200">{{ checklist_summary.not_met }} not met</span>{% endif %}
+<p class="text-xs text-gray-500 w-full mt-1">Each criterion is mapped to the specific component that satisfies it (or, where honest, does not yet). This is a technical compliance self-assessment for a final-year proof-of-concept, not a legal opinion.</p>
+</div>
+
+<div class="space-y-4 mb-6">
+{% for item in checklist_items %}
+<div class="bg-white rounded-2xl p-5 md:p-6 border border-gray-200/80 shadow-sm">
+<div class="flex items-start justify-between gap-3 mb-2">
+<h3 class="text-sm font-bold text-gray-900">{{ item.number }}. {{ item.criterion }}</h3>
+{% if item.status == "met" %}
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 whitespace-nowrap">Met</span>
+{% elif item.status == "partial" %}
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200 whitespace-nowrap">Partial</span>
+{% else %}
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-800 border border-rose-200 whitespace-nowrap">Not met</span>
+{% endif %}
+</div>
+<p class="text-sm text-gray-700 leading-relaxed mb-2">{{ item.summary }}</p>
+<p class="text-xs font-mono text-gray-400">{{ item.component }}</p>
+</div>
+{% endfor %}
+</div>
 {% else %}
 <div class="bg-white rounded-2xl p-6 md:p-8 border border-gray-200/80 shadow-sm mb-6">
 <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 mb-4">Sprint 5 not yet complete</span>

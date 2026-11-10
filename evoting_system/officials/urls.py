@@ -13,4 +13,7 @@ urlpatterns = [
     path("overview/", views.overview_view, name="overview"),
     path("elections/", views.elections_view, name="elections"),
     path("candidates/", views.candidates_view, name="candidates"),
+    # FR-OFF-05 (EXTENSIONS_ROADMAP.md): display-only results page,
+    # reachable from the Elections list for a CLOSED election.
+    path("elections/<uuid:election_id>/results/", views.results_view, name="results"),
 ]

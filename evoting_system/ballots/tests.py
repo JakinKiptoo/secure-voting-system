@@ -75,22 +75,32 @@ def test_fr_v04_v08_cast_ballot_success_records_and_confirms():
 
     result = cast_ballot(uuid_token=token, candidate_id=candidate.candidate_id)
 
+    # FR-V-04: exactly one ballot selection recorded for this session.
     assert result.ballot.election_id == election.election_id
     assert result.ballot.candidate_id == candidate.candidate_id
+    # FR-V-07: SHA-256 hash generated and appended to AuditLog, within
+    # the same atomic transaction as the ballot write above.
     assert result.audit_entry.ballot == result.ballot
     assert len(result.audit_entry.ballot_hash) == 64  # SHA-256 hex digest
+    assert AuditLog.objects.filter(ballot=result.ballot).count() == 1
 
-    # Step 4, verified by re-querying the DB (not the in-memory
-    # `session` object cast_ballot() never touched) -- a fresh fetch
-    # is the only way to know the UPDATE actually persisted rather
-    # than just changing a Python attribute somewhere.
+    # FR-V-05: step 4, verified by re-querying the DB (not the
+    # in-memory `session` object cast_ballot() never touched) -- a
+    # fresh fetch is the only way to know the UPDATE actually
+    # persisted rather than just changing a Python attribute
+    # somewhere.
     persisted_session = Session.objects.get(pk=session.pk)
     assert persisted_session.is_active is False
 
+    # FR-V-06: step 5, has_voted set within the same transaction.
     voter.refresh_from_db()
-    assert voter.has_voted is True  # step 5
+    assert voter.has_voted is True
 
-    assert AuditLog.objects.filter(ballot=result.ballot).count() == 1
+    # FR-V-08: the function returns, meaning every write above
+    # committed -- result is exactly what the view uses to build the
+    # confirmation receipt (ballot id + audit hash digest).
+    assert result.ballot.ballot_id is not None
+    assert result.audit_entry.ballot_hash
 
 
 @pytest.mark.django_db

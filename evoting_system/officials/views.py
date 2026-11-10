@@ -25,6 +25,23 @@ pattern):
                         position list, now with an election selector
                         (GET param) so any election's candidates are
                         reachable, not just the Overview election.
+  - results_view    -- FR-OFF-05 (EXTENSIONS_ROADMAP.md), display-only
+                        officials-facing results page. NOT a Sprint 4
+                        change and NOT a new tally computation: it
+                        calls tally.services.get_verification_payload()
+                        exactly as tally/views.py::public_verify_view
+                        already does for the public page, with
+                        deep_verify left at its default False. The
+                        "winner" is computed here, in the view, by
+                        taking max() over the payload's own already
+                        -published candidate_results list -- no new
+                        query, no new crypto, no second tally path.
+                        Respects the same FR-EL-03 publish gate the
+                        public page respects: payload.available is
+                        False for any CLOSED-but-unpublished election,
+                        and the template renders "not yet published"
+                        in that case rather than previewing anything
+                        early. See officials/results.html.
 
 Deliberately read-only and aggregate-only throughout, per guardrail
 #1/#2 and FR-A-05's "no per-voter or per-ballot detail, even in an
@@ -49,11 +66,12 @@ does, exactly as in Part 1.
 from datetime import timedelta
 
 from django.core.paginator import Paginator
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from ballots.models import Ballot
 from elections.models import Candidate, Election
+from tally.services import get_verification_payload
 from voters.models import Voter
 
 from .permissions import official_required
@@ -273,5 +291,62 @@ def candidates_view(request):
             "elections": all_elections,
             "selected_election": selected_election,
             "candidates": candidates,
+        },
+    )
+
+
+@official_required
+def results_view(request, election_id):
+    """
+    FR-OFF-05 (EXTENSIONS_ROADMAP.md): officials-facing results page
+    for a single election -- an extension on top of the core system,
+    not a change to FR-P-01/FR-P-02/FR-P-03 or to Sprint 4's tally
+    logic.
+
+    Reuses tally.services.get_verification_payload() exactly as the
+    public verification page (tally/views.py::public_verify_view)
+    already does -- no new tally computation, no new query against
+    Ballot/Voter/Session. deep_verify is left at its default False,
+    matching the public page's fast-path default (NFR-PE-01); nothing
+    here needs the live pairing re-check.
+
+    get_verification_payload() already enforces the FR-EL-03 publish
+    gate itself: payload.available is False for any election that is
+    not CLOSED-and-published (OPEN, DRAFT, or CLOSED-but-unpublished
+    all collapse to the same "not available" branch, with
+    payload.reason_unavailable explaining which). This view adds no
+    second code path around that gate -- it renders exactly what the
+    payload says is available, same as the public page does.
+
+    The "winner" is computed here in the view, not in tally/services.py:
+    a plain max() over payload.candidate_results (itself just
+    [{candidate_id, name, count}, ...] sourced from the published
+    ElectionResult.candidate_counts) by count. This is NOT a new tally
+    computation -- it's picking the largest number out of a list the
+    public page already serves byte-for-byte identically. Only
+    computed when results are actually available and at least one
+    candidate has a count, so it never runs against an unpublished or
+    candidate-less election.
+
+    No new way to see per-ballot or voter-level data is introduced:
+    this template renders a subset of the exact same VerificationPayload
+    the public, unauthenticated tally:verify page already serves, which
+    is what FR-P-03's leak test already covers.
+    """
+    election = get_object_or_404(Election, pk=election_id)
+    payload = get_verification_payload(election)
+
+    winner = None
+    if payload.available and payload.candidate_results:
+        winner = max(payload.candidate_results, key=lambda c: c["count"])
+
+    return render(
+        request,
+        "officials/results.html",
+        {
+            "active_nav": "elections",
+            "election": election,
+            "payload": payload,
+            "winner": winner,
         },
     )

@@ -49,6 +49,9 @@
 <td class="px-5 py-4">
 <div class="flex items-center gap-2 flex-wrap">
 <a class="text-[#093324] hover:underline font-semibold" href="{% url 'officials:candidates' %}?election={{ election.election_id }}">View candidates</a>
+{% if election.status == "CLOSED" %}
+<a class="text-[#093324] hover:underline font-semibold" href="{% url 'officials:results' election.election_id %}">View results</a>
+{% endif %}
 {% if election.status == "DRAFT" %}
 <form method="post" action="{% url 'admin:elections_election_changelist' %}">
 {% csrf_token %}

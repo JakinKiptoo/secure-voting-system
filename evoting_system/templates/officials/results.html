@@ -1,0 +1,94 @@
+{% extends "officials/_shell.html" %}
+{% block title %}Results — {{ election.title }} — Officials Dashboard{% endblock %}
+{% block dashboard_title %}Results{% endblock %}
+
+{% block dashboard_content %}
+<div class="pb-6 border-b border-gray-200 mb-6">
+<div class="flex items-center gap-3.5 flex-wrap">
+<h2 class="text-2xl lg:text-3xl font-extrabold text-gray-900 tracking-tight">{{ election.title }}</h2>
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold {% if election.status == 'OPEN' %}bg-emerald-50 text-emerald-800 border border-emerald-200{% elif election.status == 'CLOSED' %}bg-gray-100 text-gray-600 border border-gray-200{% else %}bg-amber-50 text-amber-800 border border-amber-200{% endif %}">{{ election.get_status_display }}</span>
+</div>
+<p class="text-sm text-gray-500 mt-1">Results, reusing the same published tally payload the public verification page serves.</p>
+</div>
+
+{% if payload.available %}
+<section class="mb-8">
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+<div class="bg-white rounded-2xl p-5 border border-gray-200/80 shadow-sm">
+<p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Total Ballots Cast</p>
+<p class="text-2xl font-extrabold text-gray-900">{{ payload.total_ballots }}</p>
+</div>
+<div class="bg-white rounded-2xl p-5 border border-gray-200/80 shadow-sm">
+<p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Published</p>
+<p class="text-sm font-semibold text-gray-900">{{ payload.published_at }}</p>
+</div>
+</div>
+</section>
+
+{% if winner %}
+<section class="mb-8">
+<div class="bg-white rounded-2xl p-6 md:p-8 border-2 border-emerald-300 bg-emerald-50/40 shadow-sm">
+<div class="flex items-center gap-3">
+<div class="w-11 h-11 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center flex-shrink-0">
+<svg class="w-6 h-6" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</div>
+<div>
+<p class="text-xs font-bold text-emerald-700 uppercase tracking-wider">Winner</p>
+<p class="text-xl font-extrabold text-gray-900">{{ winner.name }}</p>
+<p class="text-sm text-gray-600 mt-0.5">{{ winner.count }} vote{{ winner.count|pluralize }}</p>
+</div>
+</div>
+</div>
+</section>
+{% endif %}
+
+<section>
+<div class="bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden">
+<table class="w-full text-sm">
+<thead class="bg-gray-50 border-b border-gray-200">
+<tr class="text-xs font-bold text-gray-500 uppercase tracking-wider">
+<th class="text-left px-5 py-3">Candidate</th>
+<th class="text-left px-5 py-3">Votes</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-gray-100">
+{% for candidate in payload.candidate_results %}
+<tr{% if winner and candidate.candidate_id == winner.candidate_id %} class="bg-emerald-50/40"{% endif %}>
+<td class="px-5 py-4 font-semibold text-gray-900">
+{{ candidate.name }}
+{% if winner and candidate.candidate_id == winner.candidate_id %}
+<span class="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 uppercase tracking-wider">Winner</span>
+{% endif %}
+</td>
+<td class="px-5 py-4 text-gray-600">{{ candidate.count }}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</section>
+
+<p class="text-xs text-gray-400 mt-6">
+Sourced from the same published tally payload as the public verification page —
+<a class="text-[#093324] hover:underline font-semibold" href="{% url 'tally:verify' election.election_id %}">view public verification</a>.
+</p>
+
+{% elif election.status == "OPEN" or election.status == "DRAFT" %}
+<div class="bg-white rounded-2xl p-8 border border-gray-200/80 shadow-sm text-center">
+<p class="text-sm text-gray-500">Results are available once this election has closed and been published.</p>
+</div>
+
+{% else %}
+<div class="bg-white rounded-2xl p-8 border border-gray-200/80 shadow-sm text-center">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 mb-4">Results not yet published</span>
+<p class="text-sm text-gray-700">{{ payload.reason_unavailable }}</p>
+</div>
+{% endif %}
+
+<p class="mt-6">
+<a class="inline-flex items-center gap-2 text-sm font-semibold text-[#093324] hover:underline" href="{% url 'officials:elections' %}">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M10 19l-7-7m0 0l7-7m-7 7h18" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+Back to elections
+</a>
+</p>
+{% endblock %}

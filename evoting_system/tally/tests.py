@@ -414,6 +414,59 @@ def test_public_api_endpoint_requires_no_authentication(client):
 
 
 @pytest.mark.django_db
+def test_fr_p01_public_api_endpoint_rejects_write_methods(client):
+    """
+    Sprint 5 hardening check (SQLMap/Burp plan item: "confirm the
+    public verification endpoint and its API twin can't be used for
+    any write/mutation"): TallyViewSet only implements `retrieve` --
+    no create/update/partial_update/destroy -- so DRF's router never
+    binds POST/PUT/PATCH/DELETE to a handler for this route at all,
+    and every one of them must come back 405, not silently succeed or
+    500. Confirms no Election/Ballot/AuditLog row changes either way.
+    """
+    election = _election("Write Rejection Check")
+    url = f"/api/tally/{election.election_id}/"
+
+    before_elections = Election.objects.count()
+    before_ballots = Ballot.objects.count()
+    before_audit = AuditLog.objects.count()
+
+    assert client.post(url, {}).status_code == 405
+    assert client.put(url, {}).status_code == 405
+    assert client.patch(url, {}).status_code == 405
+    assert client.delete(url).status_code == 405
+
+    assert Election.objects.count() == before_elections
+    assert Ballot.objects.count() == before_ballots
+    assert AuditLog.objects.count() == before_audit
+
+
+@pytest.mark.django_db
+def test_fr_p01_public_html_endpoint_post_performs_no_mutation(client):
+    """
+    Companion check for the human-readable twin: `public_verify_view`
+    is a plain function view with no `require_GET`, so a POST to it
+    still resolves and renders (not a 405) -- but the view itself
+    contains no write code path at all, so it must not create or
+    change anything regardless of method. This confirms that directly,
+    rather than assuming it from reading the view.
+    """
+    election = _election("HTML Write Rejection Check")
+    url = reverse("tally:verify", args=[election.election_id])
+
+    before_elections = Election.objects.count()
+    before_ballots = Ballot.objects.count()
+    before_audit = AuditLog.objects.count()
+
+    response = client.post(url, {})
+    assert response.status_code == 200
+
+    assert Election.objects.count() == before_elections
+    assert Ballot.objects.count() == before_ballots
+    assert AuditLog.objects.count() == before_audit
+
+
+@pytest.mark.django_db
 def test_public_verify_page_shows_not_yet_available_for_open_election(client):
     election = _election("Open Not Available")
     election.open_voting()
@@ -608,8 +661,31 @@ def test_public_endpoint_no_voter_session_ballot_detail_leaks(client):
             for i, item in enumerate(value):
                 _check(item, f"{path}[{i}]")
 
-    for key in context.keys():
-        _check(context.get(key), key)
+    # Sprint 5 fix: `tally/verify.html` is a standalone page that has
+    # never extended `base.html` (it is the one public-facing template
+    # with no shared chrome), so the Django test client gives back a
+    # single bare `RequestContext` here instead of the `ContextList`
+    # it returns when several templates render (the `extends` case
+    # every other view exercises). A bare `RequestContext` has no
+    # `.keys()` -- it only exposes its internal dict stack via
+    # `.flatten()` -- so walking it needs its own branch rather than
+    # assuming the `ContextList` shape. This is a fix to the test's
+    # own context-walking logic, not to `tally/verify.html` or any
+    # application view.
+    if hasattr(context, "keys"):
+        # ContextList: multiple templates rendered (the `extends`
+        # case), and it supports .keys()/.get() like every other
+        # officials/auditors leak test already relies on.
+        flat_context = {key: context.get(key) for key in context.keys()}
+    else:
+        # Bare Context/RequestContext: a single template rendered with
+        # no `extends`. `.flatten()` merges its internal dict stack
+        # into one plain dict -- the Context/RequestContext equivalent
+        # of ContextList's .keys()/.get() walk above.
+        flat_context = context.flatten()
+
+    for key, value in flat_context.items():
+        _check(value, key)
 
 
 @pytest.mark.django_db

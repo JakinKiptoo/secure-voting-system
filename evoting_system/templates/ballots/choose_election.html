@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html class="h-full" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Choose an Election — Kenyan Electronic Voting System</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+  tailwind.config = { theme: { extend: {
+    colors: { brand: { 900:'#04271a',850:'#063322',800:'#063b27',750:'#0b452f',700:'#0a4d34',600:'#106f4c',500:'#10b981',400:'#34d399',100:'#d1fae5',50:'#ecfdf5' } },
+    fontFamily: { sans: ['Inter','system-ui','sans-serif'], mono: ['JetBrains Mono','monospace'] }
+  } } };
+</script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500;600&amp;display=swap" rel="stylesheet"/>
+</head>
+<body class="h-full flex flex-col bg-slate-50 text-slate-800 antialiased font-sans">
+<main class="flex-1 flex items-center justify-center p-6">
+<div class="bg-white rounded-2xl shadow-[0_18px_40px_-12px_rgba(15,23,42,0.08)] border border-slate-200/90 p-7 sm:p-9 max-w-[520px] w-full">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100/90 border border-slate-200 text-[11px] font-medium text-slate-600 mb-4">Secure Voting System</span>
+<h1 class="text-xl font-bold text-slate-900 tracking-tight mb-1.5">More than one election is open</h1>
+<p class="text-sm text-slate-500 mb-6 leading-relaxed">
+Choose which one you'd like to vote in. You can only cast one ballot per election.
+</p>
+
+<div class="space-y-3">
+{% for election in elections %}
+<a class="group block w-full border border-slate-200 hover:border-brand-700 rounded-xl p-4 transition-all" href="?election={{ election.election_id }}">
+<div class="flex items-center justify-between gap-3">
+<span class="text-sm font-semibold text-slate-900 group-hover:text-brand-800">{{ election.title }}</span>
+<svg class="w-4 h-4 text-slate-400 group-hover:text-brand-700" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M14 5l7 7m0 0l-7 7m7-7H3" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2"></path></svg>
+</div>
+</a>
+{% endfor %}
+</div>
+</div>
+</main>
+
+<footer class="w-full bg-[#042619] border-t border-emerald-950 px-6 sm:px-8 lg:px-12 py-4 flex flex-col md:flex-row items-center justify-between gap-3 text-[11px] text-emerald-200/70 tracking-wide z-20">
+<div class="text-center md:text-left leading-relaxed">
+<span>© 2026 Kenyan Electronic Voting System (student project).</span>
+<span class="text-emerald-400 font-semibold ml-1">Final-year academic proof-of-concept — not affiliated with IEBC.</span>
+</div>
+<nav class="flex flex-wrap items-center justify-center gap-5 sm:gap-6 font-mono font-medium text-[10px] sm:text-[11px]">
+<span class="inline-flex items-center gap-1.5 text-emerald-300 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-700/40">EVS-NODE-01</span>
+<span class="inline-flex items-center gap-1.5 text-emerald-300 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-700/40">TLS 1.3</span>
+</nav>
+</footer>
+</body>
+</html>

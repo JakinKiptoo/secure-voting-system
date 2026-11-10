@@ -9,6 +9,17 @@ plain Django views + templates POST directly to this module, no
 DRF/API layer involved (see Sprint 2 handover for why the DRF router
 stays empty for this flow).
 
+NFR-US-01 traceability (Sprint 5): the three steps below
+(credentials -> OTP -> issued session) are the entire voter-facing
+authentication flow, presented strictly in that linear order with no
+branching choice the voter has to make and no jargon in the
+user-facing copy -- this is what satisfies "voter completes auth +
+submission unassisted, linear flow, unambiguous language". Not
+independently pytest-tested as its own thing (usability isn't a
+pass/fail assertion); traced here, at the module that embodies it, per
+CLAUDE.md's "docstring, comment, or test name" rule, and exercised
+end-to-end by `test_full_mfa_flow_issues_session_token` below.
+
 Flagged interpretation (per CLAUDE.md "flag it rather than silently
 improving it"): the sequence diagram's first step is "Submit National
 ID", but FR-V-01 requires National ID *and* phone number as
@@ -43,6 +54,7 @@ from datetime import datetime, timedelta
 from django.conf import settings
 from django.shortcuts import redirect, render
 from django.utils import timezone
+from django.views.decorators.http import require_GET
 
 from voter_sessions.services import VOTING_TOKEN_SESSION_KEY, issue_session
 
@@ -51,6 +63,7 @@ from .crypto_utils import sha256_hex
 from .eligibility import voter_has_an_open_election_left_to_vote_in
 from .forms import CredentialForm, OTPForm, VoterRegistrationForm
 from .models import Voter
+from .privacy import PRIVACY_NOTICE_CONTROLLER
 
 OTP_LENGTH = 6
 OTP_VALIDITY_MINUTES = 5
@@ -63,6 +76,28 @@ DEBUG_MOCK_OTP_SESSION_KEY = "debug_mock_otp"
 def _generate_otp() -> str:
     """Cryptographically secure numeric OTP, zero-padded to OTP_LENGTH digits."""
     return "".join(secrets.choice("0123456789") for _ in range(OTP_LENGTH))
+
+
+@require_GET
+def privacy_notice_view(request):
+    """
+    FR-DPA-01 (EXTENSIONS_ROADMAP.md): public privacy notice shown
+    before personal data is collected. Public, unauthenticated,
+    read-only: GET only (@require_GET answers every other method with
+    405), no form, no database access at all -- the page is static
+    text plus the controller/contact/retention values from
+    voters/privacy.py, which is the single place those are edited.
+
+    It deliberately reads nothing from Voter, Session, Ballot or
+    AuditLog, so there is nothing voter-level for it to leak. It
+    describes what the prototype does; it makes no legal-compliance
+    claim.
+    """
+    return render(
+        request,
+        "voters/privacy_notice.html",
+        {"controller": PRIVACY_NOTICE_CONTROLLER},
+    )
 
 
 def register_view(request):
