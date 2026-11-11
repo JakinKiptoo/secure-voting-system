@@ -34,7 +34,7 @@
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'evoting_app') THEN
-        CREATE ROLE evoting_app WITH LOGIN PASSWORD 'change-me-before-running';
+        CREATE ROLE evoting_app WITH LOGIN PASSWORD 'secure_voting_system123';
     END IF;
 END
 $$;
