@@ -71,6 +71,7 @@ from django.utils import timezone
 
 from ballots.models import Ballot
 from elections.models import Candidate, Election
+from tally.models import ElectionResult
 from tally.services import get_verification_payload
 from voters.models import Voter
 
@@ -228,6 +229,22 @@ def elections_view(request):
     paginator = Paginator(elections, PAGE_SIZE)
     page_number = request.GET.get("page", 1)
     page_obj = paginator.get_page(page_number)
+
+    # FR-OFF-06: one query for the whole page (not one per row), using the
+    # same "published=True" lookup tally/views.py::public_index_view already
+    # uses. Used only to decide whether to SHOW a link to the existing
+    # tally:publish confirmation page; nothing is published from here.
+    published_ids = set(
+        ElectionResult.objects.filter(
+            published=True,
+            election_id__in=[e.election_id for e in page_obj.object_list],
+        ).values_list("election_id", flat=True)
+    )
+    for election in page_obj.object_list:
+        election.show_publish_link = (
+            election.status == Election.Status.CLOSED
+            and election.election_id not in published_ids
+        )
 
     return render(
         request,

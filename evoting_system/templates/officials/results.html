@@ -82,6 +82,8 @@ Sourced from the same published tally payload as the public verification page â€
 <div class="bg-white rounded-2xl p-8 border border-gray-200/80 shadow-sm text-center">
 <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 mb-4">Results not yet published</span>
 <p class="text-sm text-gray-700">{{ payload.reason_unavailable }}</p>
+{# FR-OFF-06: link to the existing confirmation page only; publishing is its POST. #}
+<a class="inline-flex items-center justify-center mt-4 px-4 py-2 rounded-xl bg-[#093324] hover:bg-[#0c402d] text-white font-semibold text-sm transition" href="{% url 'tally:publish' election.election_id %}">Publish results</a>
 </div>
 {% endif %}
 

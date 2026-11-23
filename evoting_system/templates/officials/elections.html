@@ -52,6 +52,9 @@
 {% if election.status == "CLOSED" %}
 <a class="text-[#093324] hover:underline font-semibold" href="{% url 'officials:results' election.election_id %}">View results</a>
 {% endif %}
+{% if election.show_publish_link %}
+<a class="inline-flex items-center justify-center px-3.5 py-1.5 rounded-lg border-2 border-[#093324] text-[#093324] hover:bg-[#093324] hover:text-white font-semibold text-xs transition" href="{% url 'tally:publish' election.election_id %}">Publish results</a>
+{% endif %}
 {% if election.status == "DRAFT" %}
 <form method="post" action="{% url 'admin:elections_election_changelist' %}">
 {% csrf_token %}

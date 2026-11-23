@@ -35,6 +35,14 @@ real code this session; it is no longer a gap.
 | FR-AUD-02 | Chain integrity check — hash-chain walk over `AuditLog`'s own columns | `auditors/views.py::verify_chain_view`, `auditors/services.py` |
 | FR-AUD-03 | DPA-2019 ten-criterion checklist status (real checklist since Sprint 5; 9 of 10 met, 1 not met after FR-DPA-01) | `auditors/views.py::dpa_checklist_view`, `auditors/dpa_checklist.py` |
 
+## FR-OFF-06 — Publish-results link (Officials dashboard)
+
+| ID | What | Where |
+|---|---|---|
+| FR-OFF-06 | "Publish results" link on the Officials Elections list (per row) and on the Officials results page, shown only for a CLOSED election that has no published result. It links to the existing `tally:publish` confirmation page (`/tally/<id>/publish/`); publishing itself remains that page's existing POST. Never shown for DRAFT, OPEN or already-published elections (the existing "View results" link is unchanged). The published state is one extra query per page, using the same `ElectionResult.objects.filter(published=True)` lookup as `tally/views.py::public_index_view`. Added because the demo previously needed the URL typed by hand. | `officials/views.py::elections_view`, `templates/officials/elections.html`, `templates/officials/results.html`; tests in `officials/test_fr_off_06.py` |
+
+**Not changed**: `tally/views.py`, `tally/services.py`, `tally/permissions.py`, the publish gate, and every existing test. Showing the link grants nothing: the target keeps `publisher_required`.
+
 ## FR-DPA — Data-protection extension
 
 | ID | What | Where |
