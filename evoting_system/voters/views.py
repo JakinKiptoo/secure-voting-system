@@ -54,8 +54,9 @@ from datetime import datetime, timedelta
 from django.conf import settings
 from django.shortcuts import redirect, render
 from django.utils import timezone
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_GET, require_POST
 
+from voter_sessions import hygiene
 from voter_sessions.services import VOTING_TOKEN_SESSION_KEY, issue_session
 
 from . import sms_gateway
@@ -226,6 +227,13 @@ def verify_otp_view(request):
 
                 session = issue_session(voter)
 
+                # FR-SES-01: a fresh login ends this voter's earlier
+                # active sessions. Done here in the view layer, not in
+                # issue_session (existing tests call that twice on purpose).
+                hygiene.deactivate_other_sessions(voter, session)
+                # FR-SES-02: record when authentication succeeded.
+                hygiene.mark_authenticated(request)
+
                 del request.session[PENDING_VOTER_SESSION_KEY]
                 del request.session[PENDING_EXPIRY_SESSION_KEY]
                 request.session.pop(DEBUG_MOCK_OTP_SESSION_KEY, None)
@@ -246,3 +254,21 @@ def verify_otp_view(request):
         context["debug_otp"] = request.session.get(DEBUG_MOCK_OTP_SESSION_KEY)
 
     return render(request, "voters/verify_otp.html", context)
+
+
+@require_POST
+def end_session_view(request):
+    """
+    FR-SES-03 (EXTENSIONS_ROADMAP.md): the voter's explicit "End
+    session". POST only (CSRF-protected form in the shared navigation):
+    deactivates the current Session row, removes the voting keys (and
+    any half-finished OTP step) from the browser session, then shows a
+    confirmation page. Safe to use with no active session.
+
+    Deactivates rather than deletes, like cast_ballot does for FR-V-05.
+    It never reads or writes any Ballot, and links nothing to one.
+    """
+    hygiene.end_current_session(request)
+    for key in (PENDING_VOTER_SESSION_KEY, PENDING_EXPIRY_SESSION_KEY, DEBUG_MOCK_OTP_SESSION_KEY):
+        request.session.pop(key, None)
+    return render(request, "voters/session_ended.html")

@@ -116,6 +116,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "common.navigation.site_navigation",  # FR-NAV-01, display only
             ],
         },
     },
@@ -152,6 +153,15 @@ DATABASES = {
 # ------------------------------------------------------------------
 LOGIN_REDIRECT_URL = "post_login_redirect"
 LOGIN_URL = "admin:login"
+
+# FR-SES-02 (EXTENSIONS_ROADMAP.md): maximum total minutes since OTP success
+# for which a voting token may be used, regardless of activity. Note the
+# token itself already expires after 15 minutes (FR-S-01), so with defaults
+# this is a backstop; lower it (or raise SESSION_TOKEN_LIFETIME_MINUTES) to
+# see it act first.
+VOTER_SESSION_ABSOLUTE_TIMEOUT_MINUTES = config(
+    "VOTER_SESSION_ABSOLUTE_TIMEOUT_MINUTES", default=30, cast=int
+)
 
 # ------------------------------------------------------------------
 # Password validation

@@ -95,7 +95,32 @@ Standard reset-and-reseed between rehearsals:
 
 ---
 
-## 2. Suggested order (about 20 minutes)
+## 2. Moving around by clicking (FR-NAV-01)
+
+Every page carries the same dark-green navigation bar. **Type only the first
+URL (`http://127.0.0.1:8000/`); after that, click.** What the bar shows:
+
+| Who is looking | Links |
+|---|---|
+| Anonymous | Home, Public results, Privacy, Voter login, Staff login |
+| Voter mid-flow (after OTP) | Ballot, Public results, **End session** (a button) |
+| Official | Overview, Elections, Candidates, Public results, **Logout** (a button) |
+| Auditor | Audit log, Verify chain, Compliance, Public results, **Logout** |
+| Staff account with no role (e.g. `demo.admin`) | Home, Administration, Public results, **Logout** |
+
+Logout and End session are buttons that POST (with CSRF); typing their URLs
+in the address bar gives "405 Method Not Allowed". To change role in the demo:
+click **Logout**, then **Staff login**. To start over as a different voter:
+click **End session** (or just use a private window).
+
+The registration page is reached from the landing page ("Register as a Voter").
+The Django admin's own pages (`/admin/…`, including the staff login form)
+are Django's templates and do not have the bar; use the browser Back button or
+the **Home** / **Administration** links to return.
+
+---
+
+## 2a. Suggested order (about 20 minutes)
 
 1. §4.1 Landing + privacy notice → 2. §4.2 Register (FR-V-00) →
 3. §4.3 Login/OTP/ballot as Voter 1 (FR-V-01…08, FR-S-01) →
@@ -137,10 +162,10 @@ Verified on a live server:
 
 ## 4. Click-by-click, per requirement
 
-All voter pages are standalone; staff log in at `/admin/login/`.
+All pages have the navigation bar (§2). Staff log in with **Staff login** (which is `/admin/login/`). Each step below says which link to click; typing a URL is needed only for the first page and for the `/tally/<id>/…` pages reached from a list.
 
 ### 4.1 Landing and privacy notice (FR-DPA-01)
-- Open `/`. Click **Privacy notice** → `/voters/privacy/`.
+- Open `/` (the one typed URL). Click **Privacy** in the bar → `/voters/privacy/`.
 - *Expected:* first thing on the page is the amber box "This is an academic
   prototype that uses test data only." Sections: who is responsible, what is
   collected, "Your ballot is not linked to you", who can see what, retention.
@@ -157,11 +182,11 @@ All voter pages are standalone; staff log in at `/admin/login/`.
 
 ### 4.3 FR-V-01, FR-V-03, FR-S-01, FR-V-04…08 — Voter 1 votes
 (scenario `single`; Student Council is the only OPEN election.)
-1. `/voters/login/` → `39000001` / `+254700000001`. *Wrong phone → "Invalid credentials." (FR-V-01).*
+1. Click **Voter login** → `39000001` / `+254700000001`. *Wrong phone → "Invalid credentials." (FR-V-01).*
 2. Redirects to `/voters/verify-otp/`; the mock OTP is on the page (§3).
 3. Enter a wrong 6-digit code first → "Incorrect OTP." (FR-V-03). Then the correct one.
 4. *Expected:* "session established" page showing the token expiry (about 15 minutes) — FR-S-01. The token itself is only in the browser session, never displayed.
-5. Open `/ballots/cast/` (the success page links there). Three candidates, no chooser. Pick one → Submit.
+5. The bar now shows **Ballot** and **End session**. Click **Ballot** (`/ballots/cast/`). Three candidates, no chooser. Pick one → Submit.
 6. *Expected:* "Ballot Confirmed" page with the ballot id and the **audit hash digest** (FR-V-08).
 7. Press Back and resubmit (or re-POST `/ballots/cast/`) → *Expected:* "Ballot Rejected" page (FR-V-04: one ballot per session; the token is now inactive, §6).
 8. Evidence for the atomic steps (FR-V-05/06/07), see §5 for the psql login:
@@ -171,12 +196,12 @@ All voter pages are standalone; staff log in at `/admin/login/`.
    - Auditor `/auditors/audit-log/` → new top entry; its `ballot_hash` is the digest on the receipt (I confirmed the receipt renders the hash from the audit entry in code and tests; I did not compare the two by eye in the live run).
 
 ### 4.4 FR-V-02 Already voted
-- New private window → `/voters/login/` → `39000002` / `+254700000002`.
+- New private window → `/` → **Voter login** → `39000002` / `+254700000002`.
 - *Expected (`single`):* rejection page "This voter has already cast a ballot." No OTP is issued.
 - After step 4.3, Voter 1 gets the same rejection.
 
 ### 4.5 Public Verifier — FR-P-01, FR-P-02, FR-P-03 (no login)
-- `/tally/` lists elections. Open **Library Committee Election 2025** → `/tally/<id>/`.
+- Click **Public results** → `/tally/` lists elections. Open **Library Committee Election 2025** → `/tally/<id>/`.
 - *Expected:* tally with a plain-language check "1 + 3 + 2 = 6 ✓ Confirmed — the published candidate counts sum to the published total", the ZKP data and audit hashes.
 - `/api/tally/<id>/` (JSON). Keys: `available, election_id, election_title, election_status, reason_unavailable, total_ballots, candidate_results, published_at, proof, verification, audit_entries`; each candidate result has only `candidate_id, name, count`. No voter, session or ballot identifiers (FR-P-03).
 - Open **Student Council Election 2026** (OPEN, unpublished) → *Expected:* "Results not yet published" (FR-EL-03 gate).
@@ -188,19 +213,25 @@ All voter pages are standalone; staff log in at `/admin/login/`.
 - **FR-A-05:** `/officials/overview/` (below) shows state and candidates, no ballots or voters' identities.
 
 ### 4.7 Officials — FR-OFF-01…05
-- Login as `demo.official` → lands on `/officials/overview/` (FR-OFF-01 role redirect). As the Official, `/auditors/` returns **403** (verified); anonymous visits redirect to `/admin/login/?next=…` (verified).
-- `/officials/overview/` (FR-OFF-02): status, turnout, candidates, time remaining, window controls.
-- `/officials/candidates/` (FR-OFF-03): read-only list, selectable by election.
-- `/officials/elections/` (FR-OFF-04): all elections, Open/Close quick-links, **View results** on CLOSED rows. *The quick-link buttons post to the admin action I exercised; I did not click the buttons themselves.*
+- Click **Staff login**, sign in as `demo.official` → lands on `/officials/overview/` (FR-OFF-01 role redirect). As the Official, `/auditors/` returns **403** (verified); anonymous visits redirect to `/admin/login/?next=…` (verified).
+- Click **Overview** (`/officials/overview/`) (FR-OFF-02): status, turnout, candidates, time remaining, window controls.
+- Click **Candidates** (`/officials/candidates/`) (FR-OFF-03): read-only list, selectable by election.
+- Click **Elections** (`/officials/elections/`) (FR-OFF-04): all elections, Open/Close quick-links, **View results** on CLOSED rows. *The quick-link buttons post to the admin action I exercised; I did not click the buttons themselves.*
 - `/officials/elections/<id>/results/` (FR-OFF-05) for the Library election → counts and winner.
 - **Publish (FR-EL-03, FR-OFF-06):** Close Student Council (Elections list **Close voting**) → click **Publish results** on its row (or on its results page) → confirmation page `/tally/<id>/publish/` → **Publish** → redirects to the public verify page, which now shows the tally (verified). Anonymous POST to the publish URL → 403 (verified).
 
 ### 4.8 Auditor — FR-AUD-01…03
-- Login `demo.auditor` → `/auditors/`.
-- `/auditors/audit-log/` (FR-AUD-01): paginated entries (time, action, hashes; no voter data).
-- `/auditors/audit-log/verify/` (FR-AUD-02): *Expected:* "Chain intact across all N entries."
-- `/auditors/compliance/` (FR-AUD-03): "9 of 10 criteria met, 1 not met" (criterion 8, data-subject self-service, honestly "not met"). As the Auditor, `/officials/overview/` returns 403 (verified).
+- Click **Logout** (Official), then **Staff login** as `demo.auditor` → `/auditors/`. The bar shows Audit log, Verify chain, Compliance, Public results, Logout.
+- Click **Audit log** (`/auditors/audit-log/`) (FR-AUD-01): paginated entries (time, action, hashes; no voter data).
+- Click **Verify chain** (`/auditors/audit-log/verify/`) (FR-AUD-02): *Expected:* "Chain intact across all N entries."
+- Click **Compliance** (`/auditors/compliance/`) (FR-AUD-03): "9 of 10 criteria met, 1 not met" (criterion 8, data-subject self-service, honestly "not met"). As the Auditor, `/officials/overview/` returns 403 (verified).
 - A user in both groups gets a role chooser at `/post-login/choose/` (not verified live; §9).
+
+### 4.10 Session hygiene — FR-SES-01, FR-SES-02, FR-SES-03 and FR-NAV-01
+- **FR-NAV-01 (logout):** as Official or Auditor click **Logout**. *Expected:* back on the landing page showing the anonymous bar; clicking **Staff login** or going back to an Officials page asks you to log in again. (Checked in a real browser: login → Logout → redirected home → `/officials/overview/` redirects to the login page.) Typing `/staff/logout/` in the address bar → 405.
+- **FR-SES-03 (End session):** log in as Voter 1 up to the "session established" page, then click **End session** in the bar. *Expected:* a "Session ended" page. Now press Back and click **Ballot**, or use the Back button to the ballot page → *"You need to log in before casting a ballot."* The old token is dead: psql `SELECT left(uuid_token::text,8), is_active FROM voter_sessions_session;` shows the row still exists with `is_active = f`.
+- **FR-SES-01 (second login ends the first):** log in as Voter 1 in window A (stop at the "session established" page, do not vote). In a private window B log in as Voter 1 again. In psql the same query shows window A's token `f` and window B's token `t`. In window A click **Ballot** and submit a vote → *"Ballot Rejected"* (the first session was ended by the second login).
+- **FR-SES-02 (absolute timeout):** with the default 30 minutes the token's own 15-minute expiry (FR-S-01) fires first, so to show this rule act set `VOTER_SESSION_ABSOLUTE_TIMEOUT_MINUTES=1` in `.env` and restart the server. Log in as Voter 1, wait over a minute, click **Ballot**. *Expected:* a "Session expired" page with a **Log in again** button; psql shows the token `is_active = f`. (Covered by tests; I did not wait it out in a browser.)
 
 ### 4.9 FR-EL-05 and FR-EL-06
 - **Chooser from `single`:** as Official open **Hostel Representative** and **Sports Captain** (§4.6) → login as Voter 1 → `/ballots/cast/` shows "Choose an Election" with all OPEN elections (verified: three links).
@@ -364,6 +395,8 @@ decision for you and Ms. Siva; I have not changed it.)
 ---
 
 ## 9. Not verified by running (read this before presenting)
+
+*Added with FR-NAV-01 / FR-SES: only the staff login → Logout click path was checked in a real browser (and the nav bar's appearance on an Officials page). The Voter "End session" button, the "Session ended" and "Session expired" pages, and the absolute-timeout wait were exercised by automated tests and the Django test client only, not clicked in a browser; with the sandbox's blocked Tailwind CDN a browser screenshot of the full styling was not possible.*
 
 I ran everything over HTTP and psql in a Linux sandbox. **Not verified:**
 

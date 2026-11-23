@@ -1,0 +1,20 @@
+{# FR-NAV-01: shared, role-aware navigation. Display only -- every page still enforces its own access control. #}
+<style>
+.evs-nav{background:#0E3929;color:#fff;font-family:Inter,system-ui,sans-serif;font-size:13px;border-bottom:1px solid #144834}
+.evs-nav__inner{max-width:80rem;margin:0 auto;padding:.5rem 1rem;display:flex;flex-wrap:wrap;align-items:center;gap:.25rem 1.1rem}
+.evs-nav__brand{font-weight:700;letter-spacing:.02em;margin-right:.5rem}
+.evs-nav a,.evs-nav button{color:#d1fae5;text-decoration:none;font-weight:500;background:none;border:0;padding:.25rem .1rem;cursor:pointer;font:inherit}
+.evs-nav a:hover,.evs-nav button:hover{color:#fff;text-decoration:underline}
+.evs-nav a[aria-current="page"]{color:#fff;font-weight:700;border-bottom:2px solid #86EFAC}
+.evs-nav__spacer{flex:1 1 auto}
+.evs-nav form{margin:0;display:inline}
+</style>
+<nav aria-label="Site navigation" class="evs-nav" data-testid="site-nav">
+<div class="evs-nav__inner">
+<span class="evs-nav__brand">Kenyan Electronic Voting System</span>
+{% for link in site_nav.links %}<a href="{{ link.url }}"{% if link.active %} aria-current="page"{% endif %}>{{ link.label }}</a>
+{% endfor %}<span class="evs-nav__spacer"></span>
+{% if site_nav.show_end_session %}<form action="{{ site_nav.end_session_url }}" method="post">{% csrf_token %}<button type="submit">End session</button></form>{% endif %}
+{% if site_nav.show_logout %}<form action="{{ site_nav.logout_url }}" method="post">{% csrf_token %}<button type="submit">Logout</button></form>{% endif %}
+</div>
+</nav>

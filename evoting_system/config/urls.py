@@ -33,6 +33,7 @@ from django.contrib import admin
 from django.urls import include, path
 
 from common.admin_login import StaffLoginView
+from common.staff_logout import StaffLogoutView
 from common.staff_login_redirect import post_login_choose_view, post_login_redirect_view
 
 from . import views
@@ -40,6 +41,7 @@ from . import views
 urlpatterns = [
     path("", views.home, name="home"),
     path("admin/login/", StaffLoginView.as_view(), name="admin_login_override"),
+    path("staff/logout/", StaffLogoutView.as_view(), name="staff_logout"),  # FR-NAV-01, POST only
     path("admin/", admin.site.urls),
     path("api/", include("api.urls")),
     path("voters/", include("voters.urls")),

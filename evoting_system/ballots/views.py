@@ -38,6 +38,7 @@ proved this -- see that test file's final assertions).
 from django.shortcuts import render
 
 from elections.models import Election
+from voter_sessions import hygiene
 from voter_sessions.services import VOTING_TOKEN_SESSION_KEY
 
 from .forms import BallotForm
@@ -69,6 +70,11 @@ def _resolve_requested_election(request, open_elections):
 
 
 def cast_ballot_view(request):
+    # FR-SES-02: absolute timeout since OTP success, enforced before the
+    # voting token is used at all. cast_ballot itself is unchanged.
+    if hygiene.expire_if_timed_out(request):
+        return render(request, "voters/session_expired.html")
+
     token = request.session.get(VOTING_TOKEN_SESSION_KEY)
     if not token:
         return render(
@@ -108,7 +114,7 @@ def cast_ballot_view(request):
             # matching request.session key here too, in this same
             # view, so Django's own session store doesn't keep
             # referencing a token that no longer exists anywhere.
-            request.session.pop(VOTING_TOKEN_SESSION_KEY, None)
+            hygiene.clear_voting_keys(request)  # removes the token (FR-V-05 browser side) and its timestamp
 
             return render(
                 request,

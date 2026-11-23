@@ -33,6 +33,8 @@ everything below is what the student runs manually.
 | 17 | `/tally/<election_id>/publish/` | POST | Official or Auditor role | FR-EL-03 |
 | 18 | `/api/tally/<election_id>/` | GET only (others 405 — §3.4) | None (public) | FR-P-01 JSON twin |
 | 19 | `/voters/privacy/` | GET only (POST/PUT/PATCH/DELETE all 405) | None (public) | FR-DPA-01, privacy notice; static text, no form, no database access |
+| 20 | `/staff/logout/` | POST only (GET and all other methods 405) | A logged-in staff session; CSRF token required (403 without) | FR-NAV-01, staff logout; ends the Django login and flushes the browser session |
+| 21 | `/voters/end-session/` | POST only (GET 405) | None (acts on the voting token held in the caller's own browser session); CSRF token required (403 without) | FR-SES-03, voter "End session"; deactivates the caller's own Session row and clears the voting keys |
 
 Districts 9–14 and 10 specifically are new since the original FR-V/FR-S
 core and must be in-scope for both tools this time, not just the
@@ -194,6 +196,7 @@ for the specific hardening claims item 2 of this sprint's prompt asked
 to be confirmed:
 
 - **Privacy notice (row 19) can't be used to read or change anything**: `voters/test_fr_dpa_01.py::test_fr_dpa01_notice_rejects_post_put_patch_delete` (all four methods 405, no Voter/Session/AuditLog/Ballot row changes), `test_fr_dpa01_notice_performs_no_database_writes` (a GET issues no INSERT/UPDATE/DELETE) and `test_fr_dpa01_notice_renders_no_voter_session_ballot_data` (planted voter, session, ballot and audit-log values never appear in the page or its context). In Burp, row 19 needs only a quick pass: confirm a POST returns 405 and that the page contains no form or CSRF token. SQLMap has no parameter to target on this page.
+- **Logout and End session (rows 20–21) are POST-only and CSRF-protected, and cannot touch anyone else's session**: `common/test_fr_nav_01.py::test_fr_nav01_staff_logout_rejects_get`, `test_fr_nav01_staff_logout_post_requires_csrf_token` (403 without a token, still logged in), `voters/test_fr_ses.py::test_fr_ses03_end_session_is_post_only_and_needs_csrf` and `test_fr_ses03_end_session_only_affects_the_current_token`. Neither endpoint takes a user-supplied parameter, so SQLMap has nothing to target. In Burp, confirm a GET returns 405, a POST without the CSRF token returns 403, and that replaying the old voting token after End session is rejected (`test_fr_ses03_old_token_is_rejected_after_end_session`). Related session-hygiene evidence: a second login deactivates the first session (`test_fr_ses01_second_login_deactivates_first_session`) and a session past the absolute timeout is refused and its token deactivated (`test_fr_ses02_past_limit_session_expires_and_token_is_deactivated`). Note for row 19: the "no form or CSRF token" check applies to an anonymous visitor; the shared navigation (FR-NAV-01) adds a logout/End-session form to every page for a signed-in staff user or a voter mid-flow.
 - **Public endpoint / its API twin can't be used for any
   write/mutation**: `tally/tests.py::test_fr_p01_public_api_endpoint_rejects_write_methods`
   (POST/PUT/PATCH/DELETE to `/api/tally/<id>/` all return 405, zero

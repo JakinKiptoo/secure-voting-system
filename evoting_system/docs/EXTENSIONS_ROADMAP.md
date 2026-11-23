@@ -43,6 +43,32 @@ real code this session; it is no longer a gap.
 
 **Not changed**: `tally/views.py`, `tally/services.py`, `tally/permissions.py`, the publish gate, and every existing test. Showing the link grants nothing: the target keeps `publisher_required`.
 
+## FR-NAV and FR-SES — Navigation and session hygiene
+
+Added after examiner feedback that session management was poor: the
+presenter had to open separate tabs and type URLs, and there was no
+visible logout or end of session. None of these change `REQUIREMENTS.md`
+numbering, `cast_ballot`, its transaction, FR-V-04/05 behaviour, the audit
+chain or any anonymity-related code.
+
+| ID | What | Where |
+|---|---|---|
+| FR-NAV-01 | Shared, role-aware navigation bar on every page (landing, voter register/login/OTP/session/cast/confirmation, privacy, public tally index and verify, Officials, Auditor, post-login chooser, session pages). Anonymous: Home, Public results, Privacy, Voter login, Staff login. Official: Overview, Elections, Candidates, Public results, Logout. Auditor: Audit log, Verify chain, Compliance, Public results, Logout. Voter mid-flow: Ballot, End session (plus Public results). A staff account with no role sees Home, Administration, Public results, Logout (an addition: the Django admin is open to any staff user and the demo needs a way back to it). An account holding both roles sees both sets. Display only: the links reuse `has_role()`, every page keeps its own server-side check, no URL or role rule changed. Staff logout is `POST /staff/logout/` with CSRF (GET answers 405; Django 4.2's GET logout is deprecated). | `common/navigation.py` (context processor, registered in `config/settings/base.py`), `common/staff_logout.py`, `config/urls.py`, `templates/common/_site_nav.html` (self-contained CSS, so it also works on the plain-CSS `base.html` pages), included from every page template; tests in `common/test_fr_nav_01.py` |
+| FR-SES-01 | When a voter completes OTP verification, that voter's OTHER active Session rows are deactivated. Done in the view layer, not in `issue_session` (existing tests create two active sessions through it on purpose). | `voters/views.py::verify_otp_view`, `voter_sessions/hygiene.py::deactivate_other_sessions`; tests in `voters/test_fr_ses.py` |
+| FR-SES-02 | Absolute timeout: OTP success records `voter_authenticated_at` in the browser session; where a voting token is used (`ballots/views.py::cast_ballot_view`) a session older than `VOTER_SESSION_ABSOLUTE_TIMEOUT_MINUTES` (default 30) has its token deactivated, its voting keys cleared, and the voter sees a "Session expired" page with a link back to login. A browser session with a token but no timestamp is not expired by this rule (pre-feature sessions and tests that set the token directly); an unreadable timestamp fails closed. | `voter_sessions/hygiene.py`, `ballots/views.py`, `config/settings/base.py`, `templates/voters/session_expired.html` |
+| FR-SES-03 | Voter "End session": `POST /voters/end-session/` (CSRF; GET 405) deactivates the current Session row (kept, not deleted, like FR-V-05), removes the voting keys and any half-finished OTP step from the browser session, and shows a "Session ended" page. Safe with no active session. | `voters/views.py::end_session_view`, `voters/urls.py` (`voters:end_session`), `templates/voters/session_ended.html` |
+
+**Observation to be aware of (not changed):** the voting token already
+expires 15 minutes after issue (`SESSION_TOKEN_LIFETIME_MINUTES`, FR-S-01).
+With the requested 30-minute default, FR-SES-02 therefore acts as a
+backstop: the token's own expiry fires first. To see FR-SES-02 act on its
+own, lower the setting (e.g. `VOTER_SESSION_ABSOLUTE_TIMEOUT_MINUTES=1` in
+`.env`). **Known limits:** the Django admin's own pages (including the
+staff login form at `/admin/login/`) are Django's templates and do not carry
+the shared navigation; staff logout flushes the whole browser session, so a
+voting token held in the same browser is dropped from the browser (its
+Session row then simply expires).
+
 ## FR-DPA — Data-protection extension
 
 | ID | What | Where |
