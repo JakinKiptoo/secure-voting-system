@@ -44,6 +44,25 @@
 </div>
 </div>
 
+{% if next_election_url %}
+<div class="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4" data-testid="continue-panel">
+<p class="text-sm text-amber-900 mb-3">You have <strong>{{ pending_count }}</strong> more ballot{{ pending_count|pluralize }} to cast. Next: <strong>{{ next_election_title }}</strong>.</p>
+<a class="inline-flex items-center justify-center bg-brand-800 hover:bg-brand-900 text-white rounded-xl py-2.5 px-4 font-semibold text-sm" href="{{ next_election_url }}">Continue to next ballot</a>
+<p class="text-xs text-amber-900/80 mt-3">Not now? Use <strong>End session</strong> in the bar above and log in again later to finish.</p>
+</div>
+{% elif timed_out %}
+<div class="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4" data-testid="timed-out-panel">
+<p class="text-sm text-amber-900 mb-3">Your voting session has timed out for security. You still have <strong>{{ pending_count }}</strong> ballot{{ pending_count|pluralize }} to cast: log in again to continue.</p>
+<a class="inline-flex items-center justify-center bg-brand-800 hover:bg-brand-900 text-white rounded-xl py-2.5 px-4 font-semibold text-sm" href="{% url 'voters:credentials' %}">Log in again</a>
+</div>
+{% elif all_done %}
+<div class="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4" data-testid="all-done-panel">
+<p class="text-sm font-semibold text-emerald-900 mb-1">All ballots cast</p>
+<p class="text-sm text-emerald-900/90 mb-3">There is nothing left for you to vote in. Your session has ended.</p>
+<a class="text-sm font-semibold text-brand-800 hover:underline" href="{% url 'tally:index' %}">View public results</a>
+</div>
+{% endif %}
+
 <p class="text-xs text-slate-500 leading-relaxed bg-slate-100/70 rounded-xl p-4">
 This system has no record linking your identity to this ballot — the audit hash above lets anyone verify the tally's integrity without revealing who cast which vote.
 </p>

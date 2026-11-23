@@ -18,6 +18,11 @@ made when seeding):
   single   (default)  A open (+ B and C left DRAFT, to be opened live by an
                       Official), closed+published election. Voter Two has
                       voted in A. One open election => no chooser.
+  cycle               President 2026 and Governor 2026 both OPEN (FR-EL-07:
+                      the voter votes in both in one login, being taken to
+                      the next after each ballot); closed+published election.
+                      Voter Two has voted in President only, so Governor is
+                      still pending for them.
   chooser             B and C OPEN (FR-EL-06 chooser appears), no A,
                       closed+published election. Voter Two has voted in B.
 """
@@ -44,7 +49,7 @@ class Command(BaseCommand):
     help = "Create demo data (elections, staff accounts, voters). See DEMO_RUNBOOK.md."
 
     def add_arguments(self, parser):
-        parser.add_argument("--scenario", choices=["single", "chooser"], default="single")
+        parser.add_argument("--scenario", choices=["single", "chooser", "cycle"], default="single")
         parser.add_argument("--password", default=c.DEFAULT_DEMO_PASSWORD,
                             help="Password for the demo staff accounts (demo use only).")
         parser.add_argument("--with-admin", action="store_true",
@@ -69,6 +74,11 @@ class Command(BaseCommand):
             self._election(c.TITLE_OPEN_B, ["Otieno Odhiambo|Hostel Union", "Mercy Chebet|Independent"], open_now=False)
             self._election(c.TITLE_OPEN_C, ["Kevin Mutua|Sports Club", "Lilian Njeri|Independent"], open_now=False)
             voted_in = open_a
+        elif scenario == "cycle":
+            # President starts earlier, so it is first in the voter's checklist.
+            president = self._election(c.TITLE_PRESIDENT, ["Amani Kariuki|National Unity", "Zawadi Mohamed|Progress Alliance", "Joseph Korir|Independent"], open_now=True, started_hours_ago=3)
+            self._election(c.TITLE_GOVERNOR, ["Esther Wambui|County First", "Hassan Abdi|Reform Movement"], open_now=True, started_hours_ago=2)
+            voted_in = president
         else:
             b = self._election(c.TITLE_OPEN_B, ["Otieno Odhiambo|Hostel Union", "Mercy Chebet|Independent"], open_now=True)
             self._election(c.TITLE_OPEN_C, ["Kevin Mutua|Sports Club", "Lilian Njeri|Independent"], open_now=True)
@@ -100,9 +110,9 @@ class Command(BaseCommand):
             return Voter.objects.create(national_id_hash=sha256_hex(t[0]), full_name=t[1], phone_number=t[2])
         return {"one": mk(c.VOTER_ONE), "two": mk(c.VOTER_TWO), "background": [mk(t) for t in c.BACKGROUND_VOTERS]}
 
-    def _election(self, title, candidates, open_now, past=False):
+    def _election(self, title, candidates, open_now, past=False, started_hours_ago=1):
         now = timezone.now()
-        start, end = (now - timedelta(days=30), now - timedelta(days=29)) if past else (now - timedelta(hours=1), now + timedelta(days=7))
+        start, end = (now - timedelta(days=30), now - timedelta(days=29)) if past else (now - timedelta(hours=started_hours_ago), now + timedelta(days=7))
         election = Election.objects.create(title=title, start_date=start, end_date=end)
         for entry in candidates:                       # FR-A-04: candidates while DRAFT
             name, party = entry.split("|")

@@ -20,21 +20,31 @@
 <main class="flex-1 flex items-center justify-center p-6">
 <div class="bg-white rounded-2xl shadow-[0_18px_40px_-12px_rgba(15,23,42,0.08)] border border-slate-200/90 p-7 sm:p-9 max-w-[520px] w-full">
 <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100/90 border border-slate-200 text-[11px] font-medium text-slate-600 mb-4">Secure Voting System</span>
-<h1 class="text-xl font-bold text-slate-900 tracking-tight mb-1.5">More than one election is open</h1>
+<h1 class="text-xl font-bold text-slate-900 tracking-tight mb-1.5">Your ballots</h1>
 <p class="text-sm text-slate-500 mb-6 leading-relaxed">
-Choose which one you'd like to vote in. You can only cast one ballot per election.
+More than one election is open. Cast one ballot in each; pick a pending one below, in any order. You can only cast one ballot per election, and you can end your session and come back to finish later.
 </p>
 
-<div class="space-y-3">
-{% for election in elections %}
-<a class="group block w-full border border-slate-200 hover:border-brand-700 rounded-xl p-4 transition-all" href="?election={{ election.election_id }}">
+<ul class="space-y-3" data-testid="ballot-checklist">
+{% for entry in entries %}
+{% if entry.done %}
+<li class="border border-emerald-200 bg-emerald-50/60 rounded-xl p-4 flex items-center justify-between gap-3" data-status="done">
+<span class="text-sm font-semibold text-slate-700">{{ entry.election.title }}</span>
+<span class="text-xs font-semibold text-emerald-800">Done &mdash; ballot cast</span>
+</li>
+{% else %}
+<li data-status="pending"><a class="group block w-full border border-slate-200 hover:border-brand-700 rounded-xl p-4 transition-all" href="?election={{ entry.election.election_id }}">
 <div class="flex items-center justify-between gap-3">
-<span class="text-sm font-semibold text-slate-900 group-hover:text-brand-800">{{ election.title }}</span>
-<svg class="w-4 h-4 text-slate-400 group-hover:text-brand-700" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M14 5l7 7m0 0l-7 7m7-7H3" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2"></path></svg>
+<span class="text-sm font-semibold text-slate-900 group-hover:text-brand-800">{{ entry.election.title }}</span>
+<span class="text-xs font-semibold text-amber-700">Pending &mdash; vote now &rarr;</span>
 </div>
-</a>
+</a></li>
+{% endif %}
 {% endfor %}
-</div>
+</ul>
+{% if pending_count == 0 %}
+<p class="mt-5 text-sm text-slate-600">You have voted in every open election. Use <strong>End session</strong> in the bar above when you are finished.</p>
+{% endif %}
 </div>
 </main>
 

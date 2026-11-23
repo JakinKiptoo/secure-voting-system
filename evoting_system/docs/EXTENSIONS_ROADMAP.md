@@ -43,6 +43,47 @@ real code this session; it is no longer a gap.
 
 **Not changed**: `tally/views.py`, `tally/services.py`, `tally/permissions.py`, the publish gate, and every existing test. Showing the link grants nothing: the target keeps `publisher_required`.
 
+## FR-EL-07 — Multi-ballot voting flow ("cycle-lite")
+
+Added after examiner feedback that a voter should vote in all open
+elections (e.g. President and Governor), being taken to the next one after
+each ballot. **Scope is "cycle-lite": the cycle is simply the set of
+elections that are OPEN right now.** There is no `ElectionCycle` model and
+no schema change (a test runs `makemigrations --check`).
+
+| ID | What | Where |
+|---|---|---|
+| FR-EL-07 | (1) *Pending ballots* for a voter = currently OPEN elections in which the voter has no `VoterElectionParticipation` with `has_voted = True`, ordered by `(start_date, title)`. (2) The plain chooser is replaced by a "Your ballots" checklist (each OPEN election shown Done or Pending; the voter picks a pending one); with a single OPEN election nothing changes. (3) After a ballot commits, the receipt page shows that ballot's receipt and then either **Continue to next ballot** (if others are pending) or an **All ballots cast** panel that has ended the session. For the continuation, after `cast_ballot` has committed, the view calls the existing `issue_session` to mint a fresh single-use token for the same login (no new OTP), provided the FR-SES-02 absolute timeout has not passed (if it has, the receipt says so and offers "Log in again"). Each ballot keeps its own single-use token, destroyed in that ballot's own transaction exactly as before. The original login time is carried over, never reset. (4) **Skip for now** on a ballot form is a plain link to the next pending ballot and records nothing (no abstain ballot, no schema change). A voter can End session with ballots pending and resume by logging in again (FR-EL-05 already allows that). (5) Pending is re-evaluated on every request: an election that closes mid-flow drops out, one that opens appears. | `ballots/pending.py` (new, read-only queries), `ballots/views.py::cast_ballot_view`, `templates/ballots/choose_election.html` (now the checklist), `templates/ballots/confirmation.html`, `templates/ballots/cast.html` (skip link); demo scenario `seed_demo --scenario cycle`; tests in `ballots/test_fr_el_07.py` (23) |
+
+**Anonymity constraints (tested):** the checklist is built from participation
+rows only (voter, election, has_voted); its queries never touch
+`ballots_ballot`, `elections_candidate` or `auditlog_auditlog`. No shared
+"ballot paper" identifier exists: a voter's several ballots share no column
+value and nothing relates them to each other or to the voter. `Ballot` still
+has no relation to `Voter` or `Session`; only `AuditLog` points at `Ballot`;
+`VoterElectionParticipation` is unchanged. `cast_ballot`, its transaction and
+the audit chain are unchanged.
+
+**FR-V-04 reading — needs the supervisor's sign-off.** `REQUIREMENTS.md` says
+FR-V-04 is "one ballot selection per authenticated session". FR-EL-07 reads
+that as **"one single-use token per pending election within one authenticated
+login"**: a voter authenticates once (National ID + OTP) and may cast one
+ballot in each open election, each with its own token, never two in the same
+election. This is a reinterpretation of the frozen wording, not a change to
+it, and it should be confirmed by Ms. Siva before Chapter 5 cites FR-V-04
+against these tests. The existing FR-V-04 tests are untouched and still pass
+(they exercise a single election).
+
+**Observations (not changed):** the continuation token is issued when the
+receipt page is produced, not when the voter clicks Continue; if the voter
+walks away it stays active until its own 15-minute expiry, or until End
+session or the next login (FR-SES-01) deactivates it. The view briefly holds
+the voter and the receipt in memory in the same request, as `cast_ballot`
+itself already does; nothing is stored that links them. As before, the
+participation row's `voted_at` and the ballot's `created_at` are written
+moments apart, so someone with direct database access could try to
+correlate them by time.
+
 ## FR-NAV and FR-SES — Navigation and session hygiene
 
 Added after examiner feedback that session management was poor: the

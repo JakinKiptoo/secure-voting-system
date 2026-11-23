@@ -66,6 +66,9 @@ Ballot anonymised via one-time token
 <span>Submit your ballot</span>
 </button>
 </form>
+{% if skip_url %}
+<p class="mt-4 max-w-xl text-center"><a class="text-sm font-semibold text-slate-600 hover:underline" data-testid="skip-link" href="{{ skip_url }}">Skip for now &mdash; go to the next ballot (nothing is recorded)</a></p>
+{% endif %}
 {% else %}
 <div class="bg-white rounded-2xl shadow-sm p-7 max-w-xl">
 <p class="text-sm text-slate-600">There is no election currently open for voting.</p>

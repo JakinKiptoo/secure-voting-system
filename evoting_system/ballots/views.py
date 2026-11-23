@@ -36,11 +36,12 @@ proved this -- see that test file's final assertions).
 """
 
 from django.shortcuts import render
+from django.urls import reverse
 
-from elections.models import Election
 from voter_sessions import hygiene
-from voter_sessions.services import VOTING_TOKEN_SESSION_KEY
+from voter_sessions.services import VOTING_TOKEN_SESSION_KEY, issue_session
 
+from . import pending
 from .forms import BallotForm
 from .services import BallotCastError, cast_ballot
 
@@ -69,6 +70,50 @@ def _resolve_requested_election(request, open_elections):
     return None
 
 
+def _election_url(election):
+    return f"{reverse('ballots:cast')}?election={election.election_id}"
+
+
+def _skip_url(current, pending_list):
+    """FR-EL-07: where "Skip for now" goes -- the next pending ballot after
+    the current one (wrapping round), or None if there is no other. Pure
+    navigation: nothing is recorded."""
+    others = [e for e in pending_list if e.election_id != current.election_id]
+    if not others:
+        return None
+    later = [e for e in others if (e.start_date, e.title) > (current.start_date, current.title)]
+    return _election_url((later or others)[0])
+
+
+def _after_commit(request, voter, authenticated_at, timed_out):
+    """FR-EL-07: runs only AFTER cast_ballot's transaction has committed
+    and the confirmation is certain. Decides what the receipt page offers
+    next and, for a continuation, mints a fresh single-use token for the
+    same login (no new OTP) with the existing issue_session. Each ballot
+    keeps its own token, destroyed in its own transaction by cast_ballot.
+    Re-evaluates pending from scratch (an election that closed meanwhile
+    is simply not pending)."""
+    if voter is None:
+        return {"all_done": True}
+    entries = pending.checklist(voter, pending.open_elections_in_order())
+    still_pending = pending.pending_elections(entries)
+    if not still_pending:
+        return {"all_done": True}
+    if timed_out:
+        return {"timed_out": True, "pending_count": len(still_pending)}
+    fresh = issue_session(voter)
+    request.session[VOTING_TOKEN_SESSION_KEY] = str(fresh.uuid_token)
+    if authenticated_at:
+        # The absolute timeout counts from the original OTP login, not from
+        # each ballot: carry the original timestamp over, never reset it.
+        request.session[hygiene.AUTHENTICATED_AT_SESSION_KEY] = authenticated_at
+    return {
+        "pending_count": len(still_pending),
+        "next_election_title": still_pending[0].title,
+        "next_election_url": _election_url(still_pending[0]),
+    }
+
+
 def cast_ballot_view(request):
     # FR-SES-02: absolute timeout since OTP success, enforced before the
     # voting token is used at all. cast_ballot itself is unchanged.
@@ -83,7 +128,12 @@ def cast_ballot_view(request):
             {"reason": "You need to log in before casting a ballot."},
         )
 
-    open_elections = list(Election.objects.filter(status=Election.Status.OPEN).order_by("title"))
+    # FR-EL-07: the voter's checklist, rebuilt on every request from
+    # participation rows only (see ballots/pending.py).
+    voter = pending.voter_for_token(token)
+    open_elections = pending.open_elections_in_order()
+    entries = pending.checklist(voter, open_elections)
+    pending_list = pending.pending_elections(entries)
 
     if len(open_elections) <= 1:
         # Unchanged common-case behavior: zero -> "no election open"
@@ -91,9 +141,13 @@ def cast_ballot_view(request):
         # it directly, no chooser step shown.
         election = open_elections[0] if open_elections else None
     else:
-        election = _resolve_requested_election(request, open_elections)
+        election = _resolve_requested_election(request, pending_list)
         if election is None:
-            return render(request, "ballots/choose_election.html", {"elections": open_elections})
+            return render(
+                request,
+                "ballots/choose_election.html",
+                {"entries": entries, "pending_count": len(pending_list)},
+            )
 
     if request.method == "POST":
         form = BallotForm(request.POST, election=election)
@@ -114,21 +168,25 @@ def cast_ballot_view(request):
             # matching request.session key here too, in this same
             # view, so Django's own session store doesn't keep
             # referencing a token that no longer exists anywhere.
+            #
+            # FR-EL-07: keep the original login time and check the absolute
+            # timeout (FR-SES-02) once more, now that the ballot is committed.
+            authenticated_at = request.session.get(hygiene.AUTHENTICATED_AT_SESSION_KEY)
+            timed_out = hygiene.absolute_timeout_exceeded(request)
             hygiene.clear_voting_keys(request)  # removes the token (FR-V-05 browser side) and its timestamp
 
-            return render(
-                request,
-                "ballots/confirmation.html",
-                {
-                    "ballot_id": result.ballot.ballot_id,
-                    "audit_hash": result.audit_entry.ballot_hash,
-                },
-            )
+            context = {
+                "ballot_id": result.ballot.ballot_id,
+                "audit_hash": result.audit_entry.ballot_hash,
+            }
+            context.update(_after_commit(request, voter, authenticated_at, timed_out))
+            return render(request, "ballots/confirmation.html", context)
     else:
         form = BallotForm(election=election)
 
+    skip_url = _skip_url(election, pending_list) if election is not None and len(open_elections) > 1 else None
     return render(
         request,
         "ballots/cast.html",
-        {"form": form, "election": election},
+        {"form": form, "election": election, "skip_url": skip_url},
     )

@@ -38,3 +38,7 @@ TITLE_CLOSED = DEMO_PREFIX + "Library Committee Election 2025"
 TITLE_OPEN_A = DEMO_PREFIX + "Student Council Election 2026"
 TITLE_OPEN_B = DEMO_PREFIX + "Hostel Representative Election 2026"
 TITLE_OPEN_C = DEMO_PREFIX + "Sports Captain Election 2026"
+
+# Scenario "cycle" (FR-EL-07): two OPEN elections voted in one login.
+TITLE_PRESIDENT = DEMO_PREFIX + "President 2026"
+TITLE_GOVERNOR = DEMO_PREFIX + "Governor 2026"

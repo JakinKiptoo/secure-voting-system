@@ -42,6 +42,7 @@ Two management commands (in `elections/management/commands/`).
 ```
 python manage.py seed_demo --with-admin             # scenario "single" (default)
 python manage.py seed_demo --scenario chooser --with-admin
+python manage.py seed_demo --scenario cycle --with-admin     # FR-EL-07 demo
 python manage.py reset_demo --yes                    # back to a clean state
 ```
 
@@ -56,13 +57,14 @@ closed election is published with the real `publish_results()`. `seed_demo`
 only INSERTs into the audit log. Both refuse to run unless `DEBUG` is on.
 Nothing edits grants, constraints, models or permissions.
 
-**Why two scenarios.** An election cannot go back from OPEN to DRAFT, and
+**Why several scenarios.** An election cannot go back from OPEN to DRAFT, and
 FR-EL-06's chooser appears only when more than one election is OPEN, so "one
 open election" and "two open elections" cannot both be the starting state.
 
 | Scenario | State after seeding |
 |---|---|
 | `single` (default) | **Student Council Election 2026** OPEN (3 candidates); **Library Committee Election 2025** CLOSED + PUBLISHED (6 ballots); **Hostel Representative** and **Sports Captain** left DRAFT with candidates (an Official opens them live, §4 FR-A-03, which then produces the chooser). Voter 2 has voted in Student Council. |
+| `cycle` | **President 2026** and **Governor 2026** both OPEN (FR-EL-07: one login, two ballots; President is first because it starts earlier); **Library Committee** CLOSED + PUBLISHED. Voter 2 has voted in **President** only, so Governor is still pending for them. |
 | `chooser` | **Hostel Representative** and **Sports Captain** both OPEN (chooser appears); **Library Committee** CLOSED + PUBLISHED; no Student Council. Voter 2 has voted in Hostel Representative. |
 
 **Accounts** (demo only; password for all staff: `DemoPass-2026!`, override with `--password`):
@@ -232,6 +234,16 @@ All pages have the navigation bar (§2). Staff log in with **Staff login** (whic
 - **FR-SES-03 (End session):** log in as Voter 1 up to the "session established" page, then click **End session** in the bar. *Expected:* a "Session ended" page. Now press Back and click **Ballot**, or use the Back button to the ballot page → *"You need to log in before casting a ballot."* The old token is dead: psql `SELECT left(uuid_token::text,8), is_active FROM voter_sessions_session;` shows the row still exists with `is_active = f`.
 - **FR-SES-01 (second login ends the first):** log in as Voter 1 in window A (stop at the "session established" page, do not vote). In a private window B log in as Voter 1 again. In psql the same query shows window A's token `f` and window B's token `t`. In window A click **Ballot** and submit a vote → *"Ballot Rejected"* (the first session was ended by the second login).
 - **FR-SES-02 (absolute timeout):** with the default 30 minutes the token's own 15-minute expiry (FR-S-01) fires first, so to show this rule act set `VOTER_SESSION_ABSOLUTE_TIMEOUT_MINUTES=1` in `.env` and restart the server. Log in as Voter 1, wait over a minute, click **Ballot**. *Expected:* a "Session expired" page with a **Log in again** button; psql shows the token `is_active = f`. (Covered by tests; I did not wait it out in a browser.)
+
+### 4.11 FR-EL-07 — voting in every open election in one login
+Reseed: `reset_demo --yes` then `seed_demo --scenario cycle --with-admin`. (Verified in a real browser, with the sandbox's blocked Tailwind CDN, so styling was not checked.)
+1. Click **Voter login** → Voter 1 (`39000001` / `+254700000001`) → OTP (§3) → click **Ballot**.
+2. *Expected:* the **Your ballots** checklist: **President 2026 — Pending** then **Governor 2026 — Pending** (ordered by start time, then title).
+3. Click **President 2026**, choose a candidate, **Submit**. *Expected:* the receipt (ballot reference + audit hash) and a panel "You have 1 more ballot to cast. Next: Governor 2026" with **Continue to next ballot**. No OTP is asked.
+4. Optional: on a ballot form, **Skip for now** goes to the next pending ballot and records nothing.
+5. Click **Continue to next ballot**, choose a candidate, **Submit**. *Expected:* the receipt plus an **All ballots cast** panel; the bar returns to the anonymous links, i.e. the session has ended.
+6. **Resume:** log in as Voter 2 (who voted in President). *Expected:* checklist **President — Done**, **Governor — Pending**; only Governor can be voted. Or: vote President as Voter 1, click **End session** instead of continuing, log in again, and the checklist shows President done.
+7. Evidence (psql, §5): `SELECT left(uuid_token::text,8), is_active FROM voter_sessions_session;` shows one token per ballot, all `f`; `ballots_ballot` has one row per election with no column in common, and no table links the two ballots. (**FR-V-04 reading:** "one single-use token per pending election within one authenticated login" — flag for Ms. Siva's sign-off.)
 
 ### 4.9 FR-EL-05 and FR-EL-06
 - **Chooser from `single`:** as Official open **Hostel Representative** and **Sports Captain** (§4.6) → login as Voter 1 → `/ballots/cast/` shows "Choose an Election" with all OPEN elections (verified: three links).

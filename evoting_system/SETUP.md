@@ -158,7 +158,7 @@ that log line silently — see `voters/views.py` docstring.
 pytest
 ```
 
-208 tests as of FR-NAV-01/FR-SES (170 after FR-OFF-06, 159 after FR-DPA-01, 146 at the end of Sprint 5) (see `REQUIREMENTS.md` §8 for the full
+231 tests as of FR-EL-07 (208 after FR-NAV-01/FR-SES, 170 after FR-OFF-06, 159 after FR-DPA-01, 146 at the end of Sprint 5) (see `REQUIREMENTS.md` §8 for the full
 testing strategy). Tests run against the real PostgreSQL database
 configured in `.env` (no sqlite anywhere), so steps 2–3 above must be
 done first; step 6 is only needed for the one FR-DB-01 test to run
