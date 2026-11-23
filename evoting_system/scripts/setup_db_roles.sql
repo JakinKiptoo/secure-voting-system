@@ -54,6 +54,12 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO evoting_app;
 GRANT SELECT, INSERT ON auditlog_auditlog TO evoting_app;
 REVOKE UPDATE, DELETE ON auditlog_auditlog FROM evoting_app;
 
+-- FR-SES-04: the authentication security event table (otp_lockout
+-- rows) is insert-only for the runtime role too, same pattern as
+-- AuditLog above. Needs migration auditlog 0003 applied first.
+GRANT SELECT, INSERT ON auditlog_authsecurityevent TO evoting_app;
+REVOKE UPDATE, DELETE ON auditlog_authsecurityevent FROM evoting_app;
+
 -- Verification (run manually against this same database, as the
 -- postgres superuser or the owner role -- NOT as evoting_app, since
 -- SET ROLE itself requires membership/superuser to invoke):

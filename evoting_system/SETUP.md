@@ -42,7 +42,7 @@ cp .env.example .env
 | `DJANGO_DEBUG` | `True` locally, must be unset/`False` in production |
 | `DJANGO_ALLOWED_HOSTS` | Comma-separated hostnames; required (non-empty) in production |
 | `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` | PostgreSQL connection Django itself uses (`DATABASES`) |
-| `DB_APP_USER`, `DB_APP_PASSWORD` | **Not read by Django.** Only used by `auditlog/tests.py::test_fr_db01_auditlog_insert_only_at_role_level` to open a *separate* raw connection as the restricted `evoting_app` role and prove FR-DB-01 actually holds. See step 6. |
+| `DB_APP_USER`, `DB_APP_PASSWORD` | **Not read by Django.** Only used by the two role-level tests in `auditlog/tests.py` (`test_fr_db01_auditlog_insert_only_at_role_level`, `test_fr_ses04_security_event_insert_only_at_role_level`) to open a *separate* raw connection as the restricted `evoting_app` role. They connect to the suite's own test database (Django's connection settings, so the same `DB_HOST`/`DB_PORT`), apply `scripts/setup_db_roles.sql` to it, and prove the insert-only grants actually hold. The role itself must already exist (step 6). |
 
 `config/settings/base.py` reads the `DB_*` (non-`APP`) variables via
 `python-decouple` — nothing environment-specific is hardcoded in

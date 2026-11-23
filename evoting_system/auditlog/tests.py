@@ -1,14 +1,56 @@
 import os
 from datetime import timedelta
+from pathlib import Path
 
 import psycopg2
 import pytest
+from django.conf import settings
+from django.db import connection
 from django.utils import timezone
 
 from ballots.models import Ballot
 from elections.models import Candidate, Election
 
-from .models import AuditLog
+from .models import AuditLog, AuthSecurityEvent
+
+SETUP_DB_ROLES_SQL = Path(settings.BASE_DIR) / "scripts" / "setup_db_roles.sql"
+
+
+def _restricted_role_connection():
+    """
+    Raw autocommit psycopg2 connection as the restricted runtime role
+    (DB_APP_USER, default evoting_app) to the SAME database the suite
+    is using (Django's connection settings: the pytest test database,
+    DB_HOST, DB_PORT). Applies scripts/setup_db_roles.sql to that
+    database first, through Django's owner connection. Skips only if
+    DB_APP_PASSWORD is unset or the role cannot connect.
+    """
+    app_user = os.environ.get("DB_APP_USER", "evoting_app")
+    app_password = os.environ.get("DB_APP_PASSWORD")
+    if not app_password:
+        pytest.skip(
+            "DB_APP_PASSWORD not set -- run scripts/setup_db_roles.sql and "
+            "set DB_APP_USER/DB_APP_PASSWORD to exercise the role-level checks."
+        )
+
+    db = connection.settings_dict
+    try:
+        conn = psycopg2.connect(
+            dbname=db["NAME"],
+            user=app_user,
+            password=app_password,
+            host=db["HOST"] or "localhost",
+            port=db["PORT"] or "5432",
+        )
+    except psycopg2.OperationalError as exc:
+        pytest.skip(f"Could not connect as {app_user!r} to {db['NAME']!r} ({exc}).")
+    conn.autocommit = True
+
+    # Role exists (we just connected as it), so the script's CREATE ROLE
+    # block is a no-op; only its GRANT/REVOKE lines take effect.
+    with connection.cursor() as cur:
+        cur.execute(SETUP_DB_ROLES_SQL.read_text(encoding="utf-8"))
+    return conn
 
 
 @pytest.mark.django_db
@@ -64,23 +106,23 @@ def test_fr_db01_auditlog_insert_only_at_role_level():
     two different Postgres sessions can't see each other's
     uncommitted work.
 
-    Requires scripts/setup_db_roles.sql to have been run against this
-    database, and DB_APP_USER/DB_APP_PASSWORD to be set in the
-    environment (see SETUP.md) -- skipped, not failed, if either
-    precondition isn't met, so the rest of the suite doesn't depend on
-    that one-time DB setup step having happened.
-    """
-    app_user = os.environ.get("DB_APP_USER", "evoting_app")
-    app_password = os.environ.get("DB_APP_PASSWORD")
-    db_name = os.environ.get("DB_NAME", "evoting_dev")
-    db_host = os.environ.get("DB_HOST", "localhost")
-    db_port = os.environ.get("DB_PORT", "5432")
+    Database target (security-run finding F3): the raw connection uses
+    Django's own connection settings -- the same test database, host
+    and port as the rest of the suite -- not os.environ with a
+    hard-coded evoting_dev/5432 default. Because that test database is
+    created fresh by pytest, the test applies scripts/setup_db_roles.sql
+    to it first (as the owner connection), so what is checked is the
+    real script's GRANT/REVOKE on the real migrated schema. A positive
+    SELECT as the restricted role proves the grants were applied and
+    the row is visible, so the denials cannot come from "no grants at
+    all".
 
-    if not app_password:
-        pytest.skip(
-            "DB_APP_PASSWORD not set -- run scripts/setup_db_roles.sql and "
-            "set DB_APP_USER/DB_APP_PASSWORD to exercise FR-DB-01 directly."
-        )
+    Requires the evoting_app role to exist on the server and
+    DB_APP_USER/DB_APP_PASSWORD in the environment (see SETUP.md) --
+    skipped, not failed, only if DB_APP_PASSWORD is unset or the role
+    cannot connect.
+    """
+    conn = _restricted_role_connection()
 
     now = timezone.now()
     election = Election.objects.create(
@@ -98,21 +140,10 @@ def test_fr_db01_auditlog_insert_only_at_role_level():
     )
 
     try:
-        conn = psycopg2.connect(
-            dbname=db_name,
-            user=app_user,
-            password=app_password,
-            host=db_host,
-            port=db_port,
-        )
-    except psycopg2.OperationalError as exc:
-        pytest.skip(
-            f"Could not connect as {app_user!r} ({exc}); run "
-            "scripts/setup_db_roles.sql against this database first."
-        )
-
-    try:
-        conn.autocommit = True
+        # Positive control: the restricted role can read the row.
+        with conn.cursor() as cur:
+            cur.execute("SELECT action_type FROM auditlog_auditlog WHERE log_id = %s", [entry.log_id])
+            assert cur.fetchone() == ("ballot_cast",)
 
         with conn.cursor() as cur:
             with pytest.raises(psycopg2.Error) as update_exc:
@@ -135,3 +166,43 @@ def test_fr_db01_auditlog_insert_only_at_role_level():
     entry.refresh_from_db()
     assert entry.action_type == "ballot_cast"
     assert AuditLog.objects.filter(pk=entry.pk).exists()
+
+
+@pytest.mark.django_db(transaction=True)
+def test_fr_ses04_security_event_insert_only_at_role_level():
+    """
+    FR-SES-04: auditlog_authsecurityevent is insert-only for the
+    restricted role, same GRANT/REVOKE pattern and same database target
+    as the FR-DB-01 test above. Skipped only if DB_APP_PASSWORD is unset
+    (or the role cannot connect).
+    """
+    conn = _restricted_role_connection()
+    event = AuthSecurityEvent.objects.create(event_type=AuthSecurityEvent.OTP_LOCKOUT)
+    try:
+        # Positive control: INSERT and SELECT are allowed.
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO auditlog_authsecurityevent (timestamp, event_type) VALUES (now(), %s)",
+                ["otp_lockout"],
+            )
+            cur.execute("SELECT event_type FROM auditlog_authsecurityevent WHERE id = %s", [event.id])
+            assert cur.fetchone() == ("otp_lockout",)
+
+        with conn.cursor() as cur:
+            with pytest.raises(psycopg2.Error) as update_exc:
+                cur.execute(
+                    "UPDATE auditlog_authsecurityevent SET event_type = %s WHERE id = %s",
+                    ["tampered", event.id],
+                )
+        assert "permission denied" in str(update_exc.value).lower()
+
+        with conn.cursor() as cur:
+            with pytest.raises(psycopg2.Error) as delete_exc:
+                cur.execute("DELETE FROM auditlog_authsecurityevent WHERE id = %s", [event.id])
+        assert "permission denied" in str(delete_exc.value).lower()
+    finally:
+        conn.close()
+
+    event.refresh_from_db()
+    assert event.event_type == "otp_lockout"
+    assert AuthSecurityEvent.objects.count() == 2

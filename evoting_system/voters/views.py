@@ -52,10 +52,12 @@ import secrets
 from datetime import datetime, timedelta
 
 from django.conf import settings
+from django.db import transaction
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
+from auditlog.models import AuthSecurityEvent
 from voter_sessions import hygiene
 from voter_sessions.services import VOTING_TOKEN_SESSION_KEY, issue_session
 
@@ -68,6 +70,8 @@ from .privacy import PRIVACY_NOTICE_CONTROLLER
 
 OTP_LENGTH = 6
 OTP_VALIDITY_MINUTES = 5
+# FR-SES-04: consecutive wrong OTPs allowed on one pending login.
+OTP_MAX_FAILED_ATTEMPTS = 5
 
 PENDING_VOTER_SESSION_KEY = "pending_auth_voter_id"
 PENDING_EXPIRY_SESSION_KEY = "pending_auth_expiry"
@@ -162,7 +166,9 @@ def credentials_view(request):
 
             otp = _generate_otp()
             voter.otp_hash = sha256_hex(otp)
-            voter.save(update_fields=["otp_hash"])
+            # FR-SES-04: a new pending login starts a fresh counter.
+            voter.otp_failed_attempts = 0
+            voter.save(update_fields=["otp_hash", "otp_failed_attempts"])
 
             sms_gateway.send_otp(voter.phone_number, otp)
 
@@ -212,18 +218,53 @@ def verify_otp_view(request):
     if request.method == "POST":
         form = OTPForm(request.POST)
         if form.is_valid():
-            try:
-                voter = Voter.objects.get(voter_id=pending_voter_id)
-            except Voter.DoesNotExist:
-                return redirect("voters:credentials")
-
             submitted_hash = sha256_hex(form.cleaned_data["otp"])
-            if submitted_hash != voter.otp_hash:
+            locked_out = False
+            # FR-SES-04: compare and count under a row lock, so parallel
+            # wrong guesses on one pending login are counted one by one.
+            with transaction.atomic():
+                try:
+                    voter = Voter.objects.select_for_update().get(voter_id=pending_voter_id)
+                except Voter.DoesNotExist:
+                    return redirect("voters:credentials")
+
+                # An empty otp_hash means this pending login is already
+                # used or locked out: reject without counting, so one
+                # lockout writes exactly one event even under parallel
+                # requests (or a copied cookie).
+                pending_dead = not voter.otp_hash
+                otp_ok = not pending_dead and submitted_hash == voter.otp_hash
+                if not otp_ok and not pending_dead:
+                    voter.otp_failed_attempts += 1
+                    fields = ["otp_failed_attempts"]
+                    if voter.otp_failed_attempts >= OTP_MAX_FAILED_ATTEMPTS:
+                        # Deactivate the pending login server-side: no
+                        # OTP, from any browser, can complete it now.
+                        voter.otp_hash = ""
+                        fields.append("otp_hash")
+                        locked_out = True
+                        # Records THAT a lockout happened, never who.
+                        AuthSecurityEvent.objects.create(
+                            event_type=AuthSecurityEvent.OTP_LOCKOUT
+                        )
+                    voter.save(update_fields=fields)
+
+            if locked_out or pending_dead:
+                for key in (PENDING_VOTER_SESSION_KEY, PENDING_EXPIRY_SESSION_KEY, DEBUG_MOCK_OTP_SESSION_KEY):
+                    request.session.pop(key, None)
+                reason = (
+                    "Too many incorrect codes. Please start again."
+                    if locked_out
+                    else "This code is no longer valid. Please start again."
+                )
+                return render(request, "voters/auth_rejected.html", {"reason": reason})
+            if not otp_ok:
                 form.add_error("otp", "Incorrect OTP.")
             else:
                 # Single-use: clear the OTP hash so it can't be replayed.
                 voter.otp_hash = ""
-                voter.save(update_fields=["otp_hash"])
+                voter.otp_failed_attempts = 0  # FR-SES-04
+                voter.save(update_fields=["otp_hash", "otp_failed_attempts"])
 
                 session = issue_session(voter)
 

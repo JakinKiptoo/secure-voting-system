@@ -51,3 +51,33 @@ class AuditLog(models.Model):
 
     def __str__(self):
         return f"AuditLog {self.log_id} ({self.action_type})"
+
+
+class AuthSecurityEvent(models.Model):
+    """
+    FR-SES-04 (EXTENSIONS_ROADMAP.md): insert-only record of
+    authentication security events -- currently only 'otp_lockout'.
+
+    Deliberately separate from AuditLog: AuditLog rows are the ballot
+    hash chain (one per Ballot) read by Verify chain and the public
+    tally, and a non-ballot row there would break that chain.
+
+    Holds id, timestamp and event_type ONLY. No voter, session, National
+    ID, phone number, OTP or IP address, and no foreign key to Ballot,
+    Voter or Session: an event records THAT a lockout happened, never
+    WHO was locked out. Insert-only for the restricted runtime role via
+    scripts/setup_db_roles.sql (same GRANT/REVOKE pattern as AuditLog).
+    """
+
+    OTP_LOCKOUT = "otp_lockout"
+
+    id = models.BigAutoField(primary_key=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    event_type = models.CharField(max_length=50)
+
+    class Meta:
+        verbose_name = "Authentication Security Event"
+        verbose_name_plural = "Authentication Security Events"
+
+    def __str__(self):
+        return f"AuthSecurityEvent {self.id} ({self.event_type})"

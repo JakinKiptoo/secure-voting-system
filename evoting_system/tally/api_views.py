@@ -14,7 +14,10 @@ class added later. CLAUDE.md invariant #4 applies here exactly as it
 does to the HTML page.
 """
 
+import uuid
+
 from rest_framework.permissions import AllowAny
+from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 
@@ -24,24 +27,28 @@ from .services import get_verification_payload
 
 
 class TallyViewSet(ViewSet):
-    """
-    GET /api/tally/<election_id>/        -- published-at-publish-time
-                                             outcome (fast path).
-    GET /api/tally/<election_id>/?reverify=1
-                                          -- additionally re-runs the
-                                             live pairing/chain checks
-                                             (slower -- opt-in, see
-                                             services.py).
+    """Public tally and verification data for one election, returned as JSON."""
 
-    `election_id` doubles as the DRF `pk` lookup -- there's no
-    separate "tally" primary key; the tally IS the election's, scoped
-    1:1 the same way item 1 requires everywhere else in this sprint.
-    """
-
+    # The docstring above is public: DRF uses it as the view description.
+    # Keep internal notes in comments like this one instead.
+    # GET /api/tally/<election_id>/ returns the outcome recorded at publish
+    # time; ?reverify=1 also re-runs the live pairing and chain checks
+    # (slower, opt-in). election_id doubles as the DRF pk lookup: the tally
+    # belongs to its election 1:1. JSON only, so a browser asking for HTML
+    # gets JSON rather than the browsable API page.
+    renderer_classes = [JSONRenderer]
     permission_classes = [AllowAny]
     lookup_value_regex = "[0-9a-f-]{36}"  # UUID
 
     def retrieve(self, request, pk=None):
+        # lookup_value_regex admits any 36 hex/dash characters, not only
+        # valid UUIDs; a malformed id must answer 404 like an unknown one,
+        # never an unhandled ValidationError (HTTP 500).
+        try:
+            uuid.UUID(str(pk))
+        except ValueError:
+            return Response({"detail": "No such election."}, status=404)
+
         election = Election.objects.filter(pk=pk).first()
         if election is None:
             return Response({"detail": "No such election."}, status=404)

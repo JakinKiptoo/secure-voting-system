@@ -38,6 +38,16 @@ class Voter(models.Model):
         blank=True,
         help_text="Hashed OTP secret. Populated by the MFA pipeline (Sprint 2, FR-V-03).",
     )
+    otp_failed_attempts = models.PositiveSmallIntegerField(
+        default=0,
+        help_text=(
+            "FR-SES-04: consecutive wrong OTPs for the CURRENT pending "
+            "login. Reset to 0 whenever a new OTP is issued; incremented "
+            "under a row lock so parallel requests cannot overshoot the "
+            "limit. Stored here, not in the browser session, because the "
+            "session is saved at request end (last write wins)."
+        ),
+    )
     registration_date = models.DateTimeField(
         auto_now_add=True,
         help_text="Set under FR-V-00 at registration time.",
