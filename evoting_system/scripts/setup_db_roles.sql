@@ -25,16 +25,29 @@
 -- already created the schema (so `ALL TABLES IN SCHEMA public`
 -- below actually has something to grant against):
 --
---   sudo -u postgres psql -d evoting_dev -f scripts/setup_db_roles.sql
+--   sudo -u postgres psql -d evoting_dev -v app_password="$DB_APP_PASSWORD" -f scripts/setup_db_roles.sql
 --
--- CHANGE THE PASSWORD BELOW before running this anywhere but a local
--- throwaway dev database, then rotate it via ALTER ROLE immediately
--- after for anything resembling production.
+-- The evoting_app password is NOT stored in this file. It comes from
+-- the psql variable app_password, supplied on the command line from
+-- the DB_APP_PASSWORD environment value (see SETUP.md step 6). It is
+-- only used when the role does not exist yet; an existing role's
+-- password is never changed by this script.
+
+\if :{?app_password}
+\else
+    \echo 'setup_db_roles.sql: supply the evoting_app password with -v app_password=... (from DB_APP_PASSWORD).'
+    DO $$ BEGIN RAISE EXCEPTION 'setup_db_roles.sql: psql variable app_password not set; nothing changed'; END $$;
+    \quit
+\endif
+
+-- Selected as a boolean so psql never echoes the value.
+SELECT set_config('evoting.app_password', :'app_password', false) IS NOT NULL AS app_password_supplied;
 
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'evoting_app') THEN
-        CREATE ROLE evoting_app WITH LOGIN PASSWORD 'secure_voting_system123';
+        EXECUTE format('CREATE ROLE evoting_app WITH LOGIN PASSWORD %L',
+                       current_setting('evoting.app_password'));
     END IF;
 END
 $$;

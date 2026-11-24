@@ -42,7 +42,7 @@ cp .env.example .env
 | `DJANGO_DEBUG` | `True` locally, must be unset/`False` in production |
 | `DJANGO_ALLOWED_HOSTS` | Comma-separated hostnames; required (non-empty) in production |
 | `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` | PostgreSQL connection Django itself uses (`DATABASES`) |
-| `DB_APP_USER`, `DB_APP_PASSWORD` | **Not read by Django.** Only used by the two role-level tests in `auditlog/tests.py` (`test_fr_db01_auditlog_insert_only_at_role_level`, `test_fr_ses04_security_event_insert_only_at_role_level`) to open a *separate* raw connection as the restricted `evoting_app` role. They connect to the suite's own test database (Django's connection settings, so the same `DB_HOST`/`DB_PORT`), apply `scripts/setup_db_roles.sql` to it, and prove the insert-only grants actually hold. The role itself must already exist (step 6). |
+| `DB_APP_USER`, `DB_APP_PASSWORD` | **Not read by Django.** Only used by the two role-level tests in `auditlog/tests.py` (`test_fr_db01_auditlog_insert_only_at_role_level`, `test_fr_ses04_security_event_insert_only_at_role_level`) to open a *separate* raw connection as the restricted `evoting_app` role. They connect to the suite's own test database (Django's connection settings, so the same `DB_HOST`/`DB_PORT`), apply `scripts/setup_db_roles.sql` to it (supplying `DB_APP_PASSWORD` in place of the script's psql variable `app_password`), and prove the insert-only grants actually hold. The role itself must already exist (step 6). Also passed to `setup_db_roles.sql` as `-v app_password=...` when you run it yourself. |
 
 `config/settings/base.py` reads the `DB_*` (non-`APP`) variables via
 `python-decouple` — nothing environment-specific is hardcoded in
@@ -94,11 +94,23 @@ Log into `/admin/` to:
 **Do this after step 4** (the tables must already exist):
 
 ```bash
-sudo -u postgres psql -d evoting_dev -f scripts/setup_db_roles.sql
+# bash: DB_APP_PASSWORD must be set in the environment (e.g. exported from .env)
+sudo -u postgres psql -d evoting_dev -v ON_ERROR_STOP=1 -v app_password="$DB_APP_PASSWORD" -f scripts/setup_db_roles.sql
 ```
 
-Edit the password in that script first (or `ALTER ROLE evoting_app
-WITH PASSWORD '...'` immediately after running it). This creates a
+```powershell
+# PowerShell (Windows installer: superuser "postgres"; add -p <port> if not 5432)
+& "C:\Program Files\PostgreSQL\15\bin\psql.exe" -U postgres -d evoting_dev -v ON_ERROR_STOP=1 -v "app_password=$env:DB_APP_PASSWORD" -f scripts\setup_db_roles.sql
+```
+
+No password is stored in the script or in `.env.example` (which only
+has `CHANGE_ME` placeholders). The script reads the `evoting_app`
+password from the psql variable `app_password`, which you pass from
+your own `DB_APP_PASSWORD`; without it the script stops before
+changing anything. The password is only used when `evoting_app` does
+not exist yet: re-running the script never changes an existing role's
+password (use `ALTER ROLE` or psql's `\password evoting_app` for
+that), it only re-applies the grants. This creates a
 second, restricted `evoting_app` role with full CRUD on every table
 **except** `AuditLog`, where it only has `SELECT`/`INSERT` — `UPDATE`
 and `DELETE` are revoked. Full rationale and a manual `SET ROLE`

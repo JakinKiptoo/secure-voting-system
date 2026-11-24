@@ -1,8 +1,10 @@
 import os
+import re
 from datetime import timedelta
 from pathlib import Path
 
 import psycopg2
+import psycopg2.sql
 import pytest
 from django.conf import settings
 from django.db import connection
@@ -49,8 +51,24 @@ def _restricted_role_connection():
     # Role exists (we just connected as it), so the script's CREATE ROLE
     # block is a no-op; only its GRANT/REVOKE lines take effect.
     with connection.cursor() as cur:
-        cur.execute(SETUP_DB_ROLES_SQL.read_text(encoding="utf-8"))
+        cur.execute(_roles_sql_for_cursor(app_password, conn))
     return conn
+
+
+def _roles_sql_for_cursor(app_password, raw_conn):
+    """
+    scripts/setup_db_roles.sql is written for psql: it takes the
+    evoting_app password from the psql variable app_password and has a
+    psql-only \\if guard for when that variable is missing. Running it
+    through a database cursor instead, drop that guard block and put
+    the DB_APP_PASSWORD value in as a properly quoted SQL literal.
+    The GRANT/REVOKE statements are run exactly as written.
+    """
+    text = SETUP_DB_ROLES_SQL.read_text(encoding="utf-8")
+    text, guards = re.subn(r"(?ms)^\\if\b.*?^\\endif[^\n]*\n", "", text)
+    assert guards == 1, "expected exactly one \\if ... \\endif guard in setup_db_roles.sql"
+    assert ":'app_password'" in text, "setup_db_roles.sql no longer uses the app_password variable"
+    return text.replace(":'app_password'", psycopg2.sql.Literal(app_password).as_string(raw_conn))
 
 
 @pytest.mark.django_db
