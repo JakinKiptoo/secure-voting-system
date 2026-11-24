@@ -181,9 +181,13 @@ def cast_ballot(uuid_token: str, candidate_id, *, expected_election_id=None) -> 
     # on the tail alone let concurrent casts fork the chain (a waiter is
     # handed the old tail row once the lock frees, and an empty table has no
     # row to lock). Taken after the election FOR SHARE lock, as before.
+    # The tail read itself takes no row lock: the advisory lock already
+    # serialises it, and SELECT ... FOR UPDATE needs UPDATE privilege on
+    # auditlog_auditlog, which the restricted runtime role must not have
+    # (FR-DB-01).
     with connection.cursor() as cursor:
         cursor.execute("SELECT pg_advisory_xact_lock(%s)", [AUDIT_CHAIN_LOCK_KEY])
-    previous_entry = AuditLog.objects.select_for_update().order_by("-log_id").first()
+    previous_entry = AuditLog.objects.order_by("-log_id").first()
     previous_hash = previous_entry.ballot_hash if previous_entry else ""
     ballot_hash = _compute_ballot_hash(ballot, previous_hash)
     audit_entry = AuditLog.objects.create(

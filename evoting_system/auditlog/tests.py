@@ -279,3 +279,49 @@ def test_fr_db01_ballots_and_published_results_not_updatable_by_app_role():
     ballot.refresh_from_db()
     assert ballot.candidate_id == cands[0].candidate_id
     assert ElectionResult.objects.get(pk=result.pk).total_ballots == 1
+
+
+@pytest.mark.django_db(transaction=True)
+def test_fr_db01_cast_ballot_runs_as_app_role():
+    """
+    The application's cast path works when Django itself connects as the
+    restricted runtime role (DB_APP_USER/DB_APP_PASSWORD), with the grants
+    from scripts/setup_db_roles.sql: a ballot, its audit entry and the
+    participation row are written. Data is set up as the owner; only the
+    cast_ballot() call runs as the restricted role. Skipped like the other
+    role-level tests when DB_APP_PASSWORD is unset.
+    """
+    from auditlog.services import verify_chain_integrity
+    from ballots.services import cast_ballot
+    from voter_sessions.models import Session
+    from voter_sessions.services import issue_session
+    from voters.crypto_utils import sha256_hex
+    from voters.models import Voter, VoterElectionParticipation
+
+    _restricted_role_connection().close()  # skip rule + grants applied to this test database
+    now = timezone.now()
+    election = Election.objects.create(title="App Role Cast Election", start_date=now, end_date=now + timedelta(days=1))
+    candidate = Candidate.objects.create(election=election, name="App Role Candidate")
+    election.open_voting()
+    voter = Voter.objects.create(national_id_hash=sha256_hex("79700001"), full_name="App Role Voter",
+                                 phone_number="+254797000001")
+    session = issue_session(voter)
+
+    owner = {k: connection.settings_dict[k] for k in ("USER", "PASSWORD")}
+    connection.close()
+    connection.settings_dict["USER"] = os.environ.get("DB_APP_USER", "evoting_app")
+    connection.settings_dict["PASSWORD"] = os.environ["DB_APP_PASSWORD"]
+    try:
+        with connection.cursor() as cur:
+            cur.execute("SELECT current_user")
+            assert cur.fetchone()[0] == connection.settings_dict["USER"]
+        result = cast_ballot(uuid_token=str(session.uuid_token), candidate_id=candidate.candidate_id)
+    finally:
+        connection.close()
+        connection.settings_dict.update(owner)
+
+    assert result.ballot.election_id == election.election_id
+    assert AuditLog.objects.filter(ballot_id=result.ballot.ballot_id).count() == 1
+    assert VoterElectionParticipation.objects.get(voter=voter, election=election).has_voted is True
+    assert Session.objects.get(pk=session.pk).is_active is False
+    assert verify_chain_integrity().intact

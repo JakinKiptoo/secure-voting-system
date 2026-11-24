@@ -18,6 +18,15 @@ DEBUG = False
 if not ALLOWED_HOSTS:  # noqa: F405
     raise ValueError("DJANGO_ALLOWED_HOSTS must be set in production")
 
+# FR-DB-01: the running application connects as the restricted role
+# (DB_APP_USER, created by scripts/setup_db_roles.sql), never as the table
+# owner. Migrations need the owner: run them against the separate "owner"
+# alias, which keeps DB_USER/DB_PASSWORD:
+#     python manage.py migrate --database=owner
+DATABASES["owner"] = dict(DATABASES["default"])  # noqa: F405
+DATABASES["default"]["USER"] = config("DB_APP_USER")  # noqa: F405
+DATABASES["default"]["PASSWORD"] = config("DB_APP_PASSWORD")  # noqa: F405
+
 # ------------------------------------------------------------------
 # HTTPS / TLS 1.3 enforcement (NFR-SE-01). Actual TLS termination is
 # handled by the reverse proxy/load balancer per the deployment
