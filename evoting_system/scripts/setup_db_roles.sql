@@ -73,6 +73,18 @@ REVOKE UPDATE, DELETE ON auditlog_auditlog FROM evoting_app;
 GRANT SELECT, INSERT ON auditlog_authsecurityevent TO evoting_app;
 REVOKE UPDATE, DELETE ON auditlog_authsecurityevent FROM evoting_app;
 
+-- Least privilege: no application code path updates or deletes a ballot
+-- or a published result (ballots are only inserted by cast_ballot();
+-- results only by publish_results(); the ElectionResult admin is
+-- read-only; reset_demo, which deletes both, is demo tooling run as the
+-- OWNER role, like the audit-row deletes it also needs). Revoking these
+-- stops the runtime role from rewriting ballots or the published tally
+-- (tamper scenarios 4 and 13 in the security-run tamper matrix).
+GRANT SELECT, INSERT ON ballots_ballot TO evoting_app;
+REVOKE UPDATE, DELETE ON ballots_ballot FROM evoting_app;
+GRANT SELECT, INSERT ON tally_electionresult TO evoting_app;
+REVOKE UPDATE, DELETE ON tally_electionresult FROM evoting_app;
+
 -- Verification (run manually against this same database, as the
 -- postgres superuser or the owner role -- NOT as evoting_app, since
 -- SET ROLE itself requires membership/superuser to invoke):

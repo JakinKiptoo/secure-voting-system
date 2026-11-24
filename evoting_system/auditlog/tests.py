@@ -224,3 +224,58 @@ def test_fr_ses04_security_event_insert_only_at_role_level():
     event.refresh_from_db()
     assert event.event_type == "otp_lockout"
     assert AuthSecurityEvent.objects.count() == 2
+
+
+@pytest.mark.django_db(transaction=True)
+def test_fr_db01_ballots_and_published_results_not_updatable_by_app_role():
+    """
+    Least privilege (after the tamper matrix): the restricted runtime role
+    may read and insert ballots and published results, but UPDATE and
+    DELETE on ballots_ballot and tally_electionresult are refused at the
+    PostgreSQL role level -- so the runtime role cannot rewrite a ballot
+    or the published tally. Same database target and skip rule as the
+    FR-DB-01 test above.
+    """
+    from ballots.services import cast_ballot
+    from tally.models import ElectionResult
+    from tally.services import publish_results
+    from voter_sessions.services import issue_session
+    from voters.crypto_utils import sha256_hex
+    from voters.models import Voter
+
+    conn = _restricted_role_connection()
+    now = timezone.now()
+    election = Election.objects.create(title="Least Privilege Election", start_date=now,
+                                       end_date=now + timedelta(days=1))
+    cands = [Candidate.objects.create(election=election, name=f"LP Candidate {i}") for i in range(2)]
+    election.open_voting()
+    voter = Voter.objects.create(national_id_hash=sha256_hex("79600001"), full_name="LP Voter",
+                                 phone_number="+254796000001")
+    ballot = cast_ballot(uuid_token=str(issue_session(voter).uuid_token), candidate_id=cands[0].candidate_id).ballot
+    election.close_voting()
+    result = publish_results(election)
+
+    statements = [
+        ("UPDATE ballots_ballot SET candidate_id = %s WHERE ballot_id = %s",
+         [str(cands[1].candidate_id), str(ballot.ballot_id)]),
+        ("DELETE FROM ballots_ballot WHERE ballot_id = %s", [str(ballot.ballot_id)]),
+        ("UPDATE tally_electionresult SET total_ballots = 99 WHERE result_id = %s", [str(result.result_id)]),
+        ("DELETE FROM tally_electionresult WHERE result_id = %s", [str(result.result_id)]),
+    ]
+    try:
+        with conn.cursor() as cur:  # positive control: SELECT is allowed
+            cur.execute("SELECT count(*) FROM ballots_ballot WHERE ballot_id = %s", [str(ballot.ballot_id)])
+            assert cur.fetchone() == (1,)
+            cur.execute("SELECT total_ballots FROM tally_electionresult WHERE result_id = %s", [str(result.result_id)])
+            assert cur.fetchone() == (1,)
+        for sql, params in statements:
+            with conn.cursor() as cur:
+                with pytest.raises(psycopg2.Error) as exc:
+                    cur.execute(sql, params)
+            assert "permission denied" in str(exc.value).lower(), (sql, exc.value)
+    finally:
+        conn.close()
+
+    ballot.refresh_from_db()
+    assert ballot.candidate_id == cands[0].candidate_id
+    assert ElectionResult.objects.get(pk=result.pk).total_ballots == 1
