@@ -1,7 +1,7 @@
 import uuid
 
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.db import models, transaction
 
 
 class Election(models.Model):
@@ -55,14 +55,22 @@ class Election(models.Model):
         self.save(update_fields=["status"])
 
     def close_voting(self):
-        """FR-A-03: close an OPEN election. OPEN -> CLOSED only."""
-        if self.status != self.Status.OPEN:
-            raise ValidationError(
-                f"Cannot close '{self}': only an OPEN election can be closed "
-                f"(current status: {self.get_status_display()})."
-            )
+        """FR-A-03: close an OPEN election. OPEN -> CLOSED only.
+
+        Locks the row (FOR UPDATE) and re-reads the status under the lock, so
+        the close waits for any cast_ballot() transaction holding its shared
+        lock on this election, and casts that start later see CLOSED.
+        """
+        with transaction.atomic():
+            locked = Election.objects.select_for_update().get(pk=self.pk)
+            if locked.status != self.Status.OPEN:
+                raise ValidationError(
+                    f"Cannot close '{self}': only an OPEN election can be closed "
+                    f"(current status: {locked.get_status_display()})."
+                )
+            locked.status = self.Status.CLOSED
+            locked.save(update_fields=["status"])
         self.status = self.Status.CLOSED
-        self.save(update_fields=["status"])
 
 
 class Candidate(models.Model):

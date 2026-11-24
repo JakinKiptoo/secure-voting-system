@@ -127,7 +127,15 @@ def cast_ballot(uuid_token: str, candidate_id) -> BallotCastResult:
     except Candidate.DoesNotExist as exc:
         raise BallotCastError("Selected candidate does not exist.") from exc
 
-    election = candidate.election
+    # Read the Election with a SHARED row lock (FOR SHARE) held until this
+    # transaction ends. close_voting() and publish_results() lock the same
+    # row exclusively, so a close waits for every cast already past this
+    # check, and a cast that starts after a close reads CLOSED here. This
+    # replaces the unlocked candidate.election read at the same point; the
+    # step order of this function is unchanged.
+    election = Election.objects.raw(
+        "SELECT * FROM elections_election WHERE election_id = %s FOR SHARE", [candidate.election_id]
+    )[0]
 
     # FR-A-03 (ballot side): reject ballots submitted outside an open
     # voting period.

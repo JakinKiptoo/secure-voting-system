@@ -70,6 +70,7 @@ def compute_tally(election: Election) -> TallyBreakdown:
     )
 
 
+@transaction.atomic
 def publish_results(election: Election) -> ElectionResult:
     """
     FR-EL-03 (item 2) + ZKP generation (item 3).
@@ -96,7 +97,15 @@ def publish_results(election: Election) -> ElectionResult:
     explicit action to design (e.g. "retract and republish"), not an
     implicit side effect of calling this function twice -- out of this
     sprint's scope.
+
+    Concurrency: the whole function is one transaction that first locks the
+    Election row (FOR UPDATE) and re-reads it, so the status and
+    already-published checks, the ballot count and the insert all happen
+    under that lock. A second concurrent publish waits, then gets the
+    "already been published" ValidationError; no cast_ballot() holding its
+    shared lock on the election can still be in flight.
     """
+    election = Election.objects.select_for_update().get(pk=election.pk)
     if election.status != Election.Status.CLOSED:
         raise ValidationError(
             f"Cannot publish results for '{election}': results can only be "
