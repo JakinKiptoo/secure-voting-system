@@ -75,7 +75,7 @@ def _compute_ballot_hash(ballot: Ballot, previous_hash: str) -> str:
 
 
 @transaction.atomic
-def cast_ballot(uuid_token: str, candidate_id) -> BallotCastResult:
+def cast_ballot(uuid_token: str, candidate_id, *, expected_election_id=None) -> BallotCastResult:
     """
     Cast one ballot for the Session identified by `uuid_token`,
     selecting `candidate_id`. Raises BallotCastError with a
@@ -129,6 +129,12 @@ def cast_ballot(uuid_token: str, candidate_id) -> BallotCastResult:
         candidate = Candidate.objects.select_related("election").get(pk=candidate_id)
     except Candidate.DoesNotExist as exc:
         raise BallotCastError("Selected candidate does not exist.") from exc
+
+    # Guard: when the caller (the voting view) says which election it validated,
+    # a candidate from any other election is rejected with the same error as an
+    # unknown candidate -- before anything is written, so the token is not used.
+    if expected_election_id is not None and str(candidate.election_id) != str(expected_election_id):
+        raise BallotCastError("Selected candidate does not exist.")
 
     # Read the Election with a SHARED row lock (FOR SHARE) held until this
     # transaction ends. close_voting() and publish_results() lock the same

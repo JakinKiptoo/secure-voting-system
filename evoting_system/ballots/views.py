@@ -156,6 +156,7 @@ def cast_ballot_view(request):
                 result = cast_ballot(
                     uuid_token=token,
                     candidate_id=form.cleaned_data["candidate"].candidate_id,
+                    expected_election_id=election.election_id,  # the election validated above
                 )
             except BallotCastError as exc:
                 return render(
