@@ -248,7 +248,40 @@ def verify_tally_proof(proof: TallyProof) -> TallyProofVerification:
 
     This function only trusts the proof's own internal consistency --
     it never queries the database. tally/services.py's
-    verify_published_result() layers the live-data cross-check on top.
+    get_verification_payload() layers the live-data cross-check on top.
+
+    Checks 1 and 3 are check_tally_commitments() below (a few
+    milliseconds); check 2, the two pairing evaluations, is the slow
+    part (seconds with py_ecc), which is why the default public read
+    path runs only check_tally_commitments() and this function runs
+    only on request (?reverify=1).
+    """
+    commitments = check_tally_commitments(proof)
+    fresh_total_g1 = commit_g1(proof.total_ballots)
+    fresh_total_g2 = commit_g2(proof.total_ballots)
+    pairing_holds = pairing(_G2, fresh_total_g1) == pairing(fresh_total_g2, _G1)
+
+    return TallyProofVerification(
+        aggregation_holds=commitments.aggregation_holds,
+        pairing_holds=pairing_holds,
+        recomputed_commitments_match=commitments.recomputed_commitments_match,
+    )
+
+
+@dataclass
+class TallyCommitmentChecks:
+    """Checks 1 and 3 of verify_tally_proof(), without the pairing."""
+
+    aggregation_holds: bool
+    recomputed_commitments_match: bool
+
+
+def check_tally_commitments(proof: TallyProof) -> TallyCommitmentChecks:
+    """
+    verify_tally_proof()'s checks 1 (aggregation) and 3 (stored
+    commitments match ones freshly rebuilt from the plaintext counts),
+    WITHOUT check 2 (the pairing). Same arithmetic as before; no
+    database access.
     """
     fresh_candidate_points = {
         candidate_id: commit_g1(count) for candidate_id, count in proof.candidate_counts.items()
@@ -259,8 +292,6 @@ def verify_tally_proof(proof: TallyProof) -> TallyProofVerification:
     aggregation_holds = points_equal_g1(
         aggregate_g1(fresh_candidate_points.values()), fresh_total_g1
     )
-
-    pairing_holds = pairing(_G2, fresh_total_g1) == pairing(fresh_total_g2, _G1)
 
     stored_total_g1 = deserialize_g1(proof.commitment_total_g1)
     stored_total_g2 = deserialize_g2(proof.commitment_total_g2)
@@ -278,8 +309,7 @@ def verify_tally_proof(proof: TallyProof) -> TallyProofVerification:
         )
     )
 
-    return TallyProofVerification(
+    return TallyCommitmentChecks(
         aggregation_holds=aggregation_holds,
-        pairing_holds=pairing_holds,
         recomputed_commitments_match=recomputed_commitments_match,
     )

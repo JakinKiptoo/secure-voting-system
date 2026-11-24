@@ -31,7 +31,7 @@ from auditlog.services import (
 from ballots.models import Ballot
 from elections.models import Candidate, Election
 
-from .crypto import TallyProof, build_tally_proof, verify_tally_proof
+from .crypto import TallyProof, build_tally_proof, check_tally_commitments, verify_tally_proof
 from .models import ElectionResult
 
 
@@ -196,35 +196,41 @@ class VerificationPayload:
         }
 
 
-def _verification_dict(proof: TallyProof, stored_result: ElectionResult) -> dict:
+def _verification_dict(proof: TallyProof, *, run_pairing: bool) -> dict:
     """
-    Runs every independent check described in crypto.py's module
-    docstring, PLUS the two checks that need live data
-    (crypto.verify_tally_proof() only trusts the proof's own
-    plaintext numbers against itself -- it never touches the
-    database):
+    The proof's own consistency checks (crypto.py; no database access).
 
-      - live_counts_match: today's actual Ballot rows for this
-        election still produce the same candidate_counts/total that
-        were published. Ballots are immutable and PROTECTed once
-        created, so in the absence of tampering this always holds;
-        checking it live is what turns "immutable by convention" into
-        "verified, not just assumed" for a public reader.
-      - audit_entries_unchanged: this election's own slice of the
-        AuditLog hash chain still digests to what was recorded at
-        publish time (auditlog/services.py::election_audit_entries_digest),
-        and chain_currently_intact re-runs the SAME shared
-        verify_chain_integrity() the Auditor dashboard uses (item 7)
-        to confirm the chain as a whole is still uncorrupted right
-        now, not just whatever it reported at publish time.
+    Every request runs crypto.check_tally_commitments(): the
+    aggregation check and the stored-vs-recomputed commitment check
+    (milliseconds). Only when run_pairing is True (?reverify=1) does it
+    run the full crypto.verify_tally_proof(), which adds the two
+    pairing evaluations (seconds).
+
+    When the pairing is not run on this request, "pairing_holds" is
+    None, and "cryptographic_proof_valid" is None unless a check that
+    did run failed (then False, since the proof cannot be valid). The
+    pairing itself was run when the results were published:
+    publish_results() refuses to publish a proof that fails
+    verify_tally_proof(). The live-data checks (live_counts_match,
+    audit_entries_unchanged, chain_currently_intact) are added by
+    get_verification_payload() on the same ?reverify=1 path.
     """
-    crypto_result = verify_tally_proof(proof)
+    if run_pairing:
+        crypto_result = verify_tally_proof(proof)
+        return {
+            "aggregation_holds": crypto_result.aggregation_holds,
+            "pairing_holds": crypto_result.pairing_holds,
+            "recomputed_commitments_match": crypto_result.recomputed_commitments_match,
+            "cryptographic_proof_valid": crypto_result.valid,
+        }
 
+    checks = check_tally_commitments(proof)
+    cheap_ok = checks.aggregation_holds and checks.recomputed_commitments_match
     return {
-        "aggregation_holds": crypto_result.aggregation_holds,
-        "pairing_holds": crypto_result.pairing_holds,
-        "recomputed_commitments_match": crypto_result.recomputed_commitments_match,
-        "cryptographic_proof_valid": crypto_result.valid,
+        "aggregation_holds": checks.aggregation_holds,
+        "pairing_holds": None,  # not run on this request; see deep_verified
+        "recomputed_commitments_match": checks.recomputed_commitments_match,
+        "cryptographic_proof_valid": None if cheap_ok else False,
     }
 
 
@@ -285,7 +291,7 @@ def get_verification_payload(election: Election, *, deep_verify: bool = False) -
         for cid, count in sorted(result.candidate_counts.items(), key=lambda kv: kv[0])
     ]
 
-    verification = _verification_dict(proof, result)
+    verification = _verification_dict(proof, run_pairing=deep_verify)
     verification["chain_intact_at_publish"] = result.chain_intact_at_publish
     verification["chain_entries_checked_at_publish"] = result.chain_entries_checked_at_publish
 

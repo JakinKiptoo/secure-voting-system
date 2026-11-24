@@ -69,7 +69,16 @@
       opened by the same number). A cryptographic check called a
       "pairing" confirms both boxes really do hold the same number,
       without needing you to trust this server's arithmetic.
-      {% if payload.verification.pairing_holds %}
+      {% if payload.verification.pairing_holds is None %}
+        {% if payload.verification.recomputed_commitments_match %}
+          The stored commitments match the published numbers.
+        {% else %}
+          <strong>&#10007; FAILED</strong> &mdash; the stored commitments do not match the published numbers.
+        {% endif %}
+        The pairing check itself was not re-run for this page load (it passed when the
+        results were published; results cannot be published if it fails).
+        <a href="?reverify=1">Run the full independent check</a> to re-run it now.
+      {% elif payload.verification.pairing_holds %}
         <strong>&#10003; Confirmed</strong> &mdash; both commitments encode the same total.
       {% else %}
         <strong>&#10007; FAILED</strong> &mdash; the two commitments do not encode the same total.
