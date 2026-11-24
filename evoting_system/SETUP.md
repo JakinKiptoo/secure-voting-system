@@ -65,6 +65,8 @@ separate from the app's day-to-day runtime role.
 python manage.py migrate
 ```
 
+Under production settings (`DJANGO_SETTINGS_MODULE=config.settings.production`) the app connects as the restricted `evoting_app` role, so run migrations with the owner connection instead: `python manage.py migrate --database=owner`.
+
 Creates all six tables with exactly the fields in `SCHEMA.md`; no FK
 from `Ballot` to `Voter` or `Session` anywhere (verified manually
 against `pg_constraint`); `AuditLog.ballot` is a `OneToOneField` to
