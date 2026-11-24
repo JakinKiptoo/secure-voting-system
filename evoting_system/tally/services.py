@@ -16,9 +16,13 @@ Three operations, matching the Sprint 4 prompt's items 1/2/3/4/6:
 
 from __future__ import annotations
 
+import hashlib
+import json
+import threading
 from dataclasses import dataclass, field
 from datetime import datetime
 
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
@@ -205,6 +209,45 @@ class VerificationPayload:
         }
 
 
+PAIRING_CACHE_SECONDS = 60
+_pairing_lock = threading.Lock()
+
+
+def _full_proof_check_cached(proof: TallyProof) -> dict:
+    """
+    crypto.verify_tally_proof() for ?reverify=1, cached for
+    PAIRING_CACHE_SECONDS so the public reverify request cannot be used to
+    run the pairing (seconds of CPU) on every call.
+
+    verify_tally_proof() depends only on the proof's own published fields,
+    so the cache key is a SHA-256 of exactly those fields: any change to the
+    published counts, total or commitments gives a new key and a fresh
+    check. The live checks (ballots, audit digest, chain walk) are not
+    cached; get_verification_payload() runs them on every ?reverify=1.
+    "pairing_cached_at" is None when the check ran on this request, else
+    the time it ran. The lock stops simultaneous requests in one process
+    from all computing the same pairing at once.
+    """
+    key = "tally:proofcheck:" + hashlib.sha256(
+        json.dumps(proof.to_dict(), sort_keys=True).encode("utf-8")
+    ).hexdigest()
+    cached = cache.get(key)
+    if cached is None:
+        with _pairing_lock:
+            cached = cache.get(key)
+            if cached is None:
+                crypto_result = verify_tally_proof(proof)
+                result = {
+                    "aggregation_holds": crypto_result.aggregation_holds,
+                    "pairing_holds": crypto_result.pairing_holds,
+                    "recomputed_commitments_match": crypto_result.recomputed_commitments_match,
+                    "cryptographic_proof_valid": crypto_result.valid,
+                }
+                cache.set(key, {"result": result, "computed_at": timezone.now().isoformat()}, PAIRING_CACHE_SECONDS)
+                return {**result, "pairing_cached_at": None}
+    return {**cached["result"], "pairing_cached_at": cached["computed_at"]}
+
+
 def _verification_dict(proof: TallyProof, *, run_pairing: bool) -> dict:
     """
     The proof's own consistency checks (crypto.py; no database access).
@@ -225,13 +268,7 @@ def _verification_dict(proof: TallyProof, *, run_pairing: bool) -> dict:
     get_verification_payload() on the same ?reverify=1 path.
     """
     if run_pairing:
-        crypto_result = verify_tally_proof(proof)
-        return {
-            "aggregation_holds": crypto_result.aggregation_holds,
-            "pairing_holds": crypto_result.pairing_holds,
-            "recomputed_commitments_match": crypto_result.recomputed_commitments_match,
-            "cryptographic_proof_valid": crypto_result.valid,
-        }
+        return _full_proof_check_cached(proof)
 
     checks = check_tally_commitments(proof)
     cheap_ok = checks.aggregation_holds and checks.recomputed_commitments_match

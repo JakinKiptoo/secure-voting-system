@@ -83,6 +83,10 @@
       {% else %}
         <strong>&#10007; FAILED</strong> &mdash; the two commitments do not encode the same total.
       {% endif %}
+      {% if payload.verification.pairing_cached_at %}
+        <em>(Cached result: this pairing check ran at {{ payload.verification.pairing_cached_at }} for exactly
+        these published numbers, and is reused for up to 60 seconds. The checks under 3 below ran just now.)</em>
+      {% endif %}
     </p>
 
     <h3>3. Has anything changed since publication?</h3>
