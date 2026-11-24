@@ -24,7 +24,7 @@ VoterElectionParticipation's.
 
 from dataclasses import dataclass
 
-from django.db import transaction
+from django.db import connection, transaction
 from django.utils import timezone
 
 from auditlog.models import AuditLog
@@ -34,6 +34,9 @@ from voters.crypto_utils import sha256_hex
 from voters.models import VoterElectionParticipation
 
 from .models import Ballot
+
+# Fixed key for the advisory lock that serialises audit-chain appends (step 3).
+AUDIT_CHAIN_LOCK_KEY = 7_407_000_001
 
 
 class BallotCastError(Exception):
@@ -167,6 +170,13 @@ def cast_ballot(uuid_token: str, candidate_id) -> BallotCastResult:
     ballot = Ballot.objects.create(election=election, candidate=candidate)
 
     # --- Step 3: compute + append SHA-256 hash to AuditLog ----------
+    # One transaction at a time from here to commit: a transaction-scoped
+    # advisory lock, taken just before the tail is read. select_for_update()
+    # on the tail alone let concurrent casts fork the chain (a waiter is
+    # handed the old tail row once the lock frees, and an empty table has no
+    # row to lock). Taken after the election FOR SHARE lock, as before.
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT pg_advisory_xact_lock(%s)", [AUDIT_CHAIN_LOCK_KEY])
     previous_entry = AuditLog.objects.select_for_update().order_by("-log_id").first()
     previous_hash = previous_entry.ballot_hash if previous_entry else ""
     ballot_hash = _compute_ballot_hash(ballot, previous_hash)
