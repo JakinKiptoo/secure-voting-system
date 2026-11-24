@@ -83,9 +83,10 @@ def test_fr_dpa01_privacy_notice_contains_the_key_disclosures(client):
     assert "the organising electoral body would be the controller" in body
     assert "act as a processor on its instructions" in body
     assert "IEBC" not in body.split("<main", 1)[1].split("</main>", 1)[0]
-    # The visible placeholders are there for the student to fill in.
-    assert "[UNIVERSITY EMAIL: to be filled in by the student]" in body
-    assert "[TO BE CONFIRMED BY THE PROJECT TEAM]" in body
+    # Contact and retention as filled in by the student; no placeholder left.
+    assert "Contact: <span class=\"font-semibold\">jakin.kipkorir@gmail.com</span>" in body
+    assert "Retention period: <span class=\"font-semibold\">6 months after results are published</span>" in body
+    assert "[UNIVERSITY EMAIL" not in body and "[TO BE CONFIRMED" not in body
 
 
 @pytest.mark.django_db
@@ -108,9 +109,8 @@ def test_fr_dpa01_controller_constant_holds_the_decided_text():
         "Jakin Kipkorir, final-year BBIT project, Strathmore University "
         "School of Computing and Engineering Sciences"
     )
-    assert "@" not in PRIVACY_NOTICE_CONTROLLER["contact"]  # placeholder, no real address
-    assert PRIVACY_NOTICE_CONTROLLER["contact"].startswith("[")
-    assert PRIVACY_NOTICE_CONTROLLER["retention"].startswith("[")
+    assert PRIVACY_NOTICE_CONTROLLER["contact"] == "jakin.kipkorir@gmail.com"
+    assert PRIVACY_NOTICE_CONTROLLER["retention"] == "6 months after results are published"
 
 
 @pytest.mark.django_db

@@ -11,11 +11,10 @@ reads every one of these values from it; none of them is written
 anywhere else in the codebase. Change a value here and the page
 changes, nothing else to edit.
 
-PLACEHOLDERS (visible on the page until replaced -- both are wrapped in
-square brackets on purpose so they cannot be mistaken for real values):
-  - contact:   the student's UNIVERSITY email address, to be filled in.
-               Do not put a personal email address here.
-  - retention: the retention period, to be confirmed by the project team.
+Contact and retention were filled in by the student on 2026-11-25 (they
+replaced the earlier bracketed placeholders). The contact is the address
+the student chose to give; an earlier note here suggested a university
+address instead.
 """
 
 PRIVACY_NOTICE_CONTROLLER = {
@@ -26,8 +25,6 @@ PRIVACY_NOTICE_CONTROLLER = {
         "Jakin Kipkorir, final-year BBIT project, Strathmore University "
         "School of Computing and Engineering Sciences"
     ),
-    # PLACEHOLDER -- replace with the university email address.
-    "contact": "[UNIVERSITY EMAIL: to be filled in by the student]",
-    # PLACEHOLDER -- replace once the project team has confirmed it.
-    "retention": "[TO BE CONFIRMED BY THE PROJECT TEAM]",
+    "contact": "jakin.kipkorir@gmail.com",
+    "retention": "6 months after results are published",
 }

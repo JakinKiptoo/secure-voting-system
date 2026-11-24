@@ -171,9 +171,9 @@ All pages have the navigation bar (§2). Staff log in with **Staff login** (whic
 - *Expected:* first thing on the page is the amber box "This is an academic
   prototype that uses test data only." Sections: who is responsible, what is
   collected, "Your ballot is not linked to you", who can see what, retention.
-  Two visible placeholders remain: `[UNIVERSITY EMAIL: to be filled in by the
-  student]` and `[TO BE CONFIRMED BY THE PROJECT TEAM]` — **fill them in before
-  the presentation** (`voters/privacy.py`). No form; POST/PUT/PATCH/DELETE return 405.
+  Contact (`jakin.kipkorir@gmail.com`) and retention ("6 months after results
+  are published") are filled in (`voters/privacy.py`). No form;
+  POST/PUT/PATCH/DELETE return 405.
 - Also linked above the registration form and on `/voters/login/`.
 
 ### 4.2 FR-V-00 Registration

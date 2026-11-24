@@ -194,8 +194,8 @@ since.)
 ## FR-DPA-01 — Privacy notice at collection
 
 **Status**: Implemented and tested (159 passed, 0 failed, 0 skipped
-for the full suite, with `DB_APP_PASSWORD` exported). Two visible
-placeholders remain for the student to fill in — see below.
+for the full suite, with `DB_APP_PASSWORD` exported). The contact and
+retention values were filled in by the student on 2026-11-25 — see below.
 
 **What it is**: an extension on top of the core system, tracked under
 its own ID. It does not touch `REQUIREMENTS.md` numbering, and it does
@@ -228,7 +228,7 @@ doing):
 - That a ballot is stored without any link to the voter, with the
   anonymity guarantees as already documented in `CLAUDE.md`.
 - Who can see what: public, Officials, Auditors, administrators.
-- Retention (placeholder) and a plain statement that the prototype has
+- Retention (6 months after results are published) and a plain statement that the prototype has
   no self-service view, correction or deletion of a voter's data.
 - It makes no claim that the system is legally compliant with any law.
 
@@ -240,9 +240,9 @@ landing page. There is no required consent checkbox.
 `PRIVACY_NOTICE_CONTROLLER` (`controller_line`, `contact`, `retention`).
 Edit that one dict and the page changes.
 
-**Placeholders for the student**:
-- `contact`: `[UNIVERSITY EMAIL: to be filled in by the student]`
-- `retention`: `[TO BE CONFIRMED BY THE PROJECT TEAM]`
+**Values filled in by the student (2026-11-25)**, replacing the earlier placeholders:
+- `contact`: `jakin.kipkorir@gmail.com`
+- `retention`: `6 months after results are published`
 - The controller line names Strathmore University; if the supervisor
   says it may not be named, change `controller_line` in the same file.
 

@@ -116,11 +116,11 @@ DPA_CHECKLIST = [
             "from the landing page and the login page, and summarised "
             "above the registration form, so it is shown before any "
             "personal data is entered. No consent checkbox is "
-            "required. Still to be filled in by the project team: the "
-            "contact email and the retention period are visible "
-            "placeholders in voters/privacy.py, and the page says in "
-            "its own text that it describes the prototype and is not "
-            "a legal statement."
+            "required. The notice gives a contact email and a "
+            "retention period (6 months after results are published), "
+            "set in voters/privacy.py, and the page says in its own "
+            "text that it describes the prototype and is not a legal "
+            "statement."
         ),
         "status": "met",
         "component": "voters/views.py::privacy_notice_view; templates/voters/privacy_notice.html; voters/privacy.py (controller/contact/retention); linked from templates/home.html, templates/voters/register.html, templates/voters/credentials.html",
