@@ -1,0 +1,2 @@
+# Vendored front-end assets must be checked out byte-for-byte (no CRLF conversion).
+evoting_system/static/vendor/** binary
