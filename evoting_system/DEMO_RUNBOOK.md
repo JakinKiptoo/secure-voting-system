@@ -56,11 +56,13 @@ need the owner): `Remove-Item Env:DEMO_DB_AS_APP` first. Base URL: `http://127.0
 Remove-Item Env:DEMO_DB_AS_APP -ErrorAction SilentlyContinue; python manage.py reset_demo --yes; if ($?) { python manage.py seed_demo --with-admin }
 ```
 
-**Internet is needed for the styling.** Most pages load the Tailwind script from
-`cdn.tailwindcss.com` and fonts from Google Fonts. Offline (tested with every
-non-localhost request blocked): the public tally pages look normal; the voter
-pages are plain but usable; the landing page and the Officials/Auditor pages
-show their icons at full page width (pages thousands of pixels tall). See §8.
+**The demo works offline.** Tailwind (3.4.17 with the forms and container-queries
+plugins) and the fonts (Inter, JetBrains Mono, Material Symbols Outlined) are served
+from `static/vendor/` (commit `bf57fdf`; sources and licences in `THIRD_PARTY.md`).
+Tested with every non-localhost request blocked: the nine key pages render the same
+as online, with no request to any other host. If a template starts using a **new
+Material Symbols icon**, re-download the subset font with that icon added to
+`icon_names` (see `THIRD_PARTY.md`); otherwise its name shows as a word.
 
 ---
 
@@ -264,7 +266,7 @@ one-line change (`session.delete()`) plus one test."* Present it as a documented
 
 | Item | Show instead |
 |---|---|
-| **TLS 1.3 (NFR-SE-01)** — the demo runs plain HTTP; the footer "TLS 1.3" is static text, not proof | `config/settings/production.py` (SSL redirect, secure cookies, HSTS, proxy header); TLS must be enforced by a reverse proxy; never deployed |
+| **TLS 1.3 (NFR-SE-01)** — the demo runs plain HTTP; the footer now reads "TLS 1.3 when deployed behind a proxy", which is a statement about deployment, not proof | `config/settings/production.py` (SSL redirect, secure cookies, HSTS, proxy header); TLS must be enforced by a reverse proxy; never deployed |
 | MFA with a real SMS (FR-G-01) | §3 stub line and mock OTP; `voters/sms_gateway.py` |
 | NFR-PE-01 Performance | Small single-machine dev-server measurement, **not a load test**: `C:\sectest\results\perf\` (default tally API p50 130 ms after the pairing fix) |
 | NFR-US-01 Usability | No user study was held; the linear flow (Acts 1–2) and the accessibility snapshot only |
@@ -276,7 +278,8 @@ one-line change (`session.delete()`) plus one test."* Present it as a documented
 ## 8. Quick troubleshooting
 
 - OTP not on the page → `DJANGO_DEBUG` is not `True`.
-- Page with giant icons and no styling → no internet (Tailwind CDN / Google Fonts blocked). The public tally pages still look normal; voter pages are plain but work.
+- No internet → nothing to do: the styling and fonts are local (`static/vendor/`). If a page shows unstyled text, check that `runserver` is serving static files (`DEBUG=True`) and that `static/vendor/` is present.
+- An icon shows as a word (for example `how_to_vote`) → that icon is not in the subset font; re-download it with the name added to `icon_names` (`THIRD_PARTY.md`).
 - `seed_demo` says data already present → run the reset line in §0.
 - `reset_demo` says "permission denied" → `DEMO_DB_AS_APP` is still set (you are `evoting_app`); `Remove-Item Env:DEMO_DB_AS_APP`.
 - `CREATE DATABASE … TEMPLATE` fails "being accessed by other users" → stop every server and psql session on `evoting_demo`.
@@ -293,4 +296,4 @@ one-line change (`session.delete()`) plus one test."* Present it as a documented
 5. **Receipt hash equals the audit-log row's hash** — not compared by eye.
 6. **Expiry waits** — OTP (5 min), token (15 min), absolute timeout: covered by tests only.
 7. **`chooser` and `cycle` scenarios, FR-SES clicks** — not re-run on this machine (earlier sandbox and tests only).
-8. **Offline styling fix** — proposed, not applied or tested.
+8. **Offline styling** — applied and tested headless (commit `bf57fdf`); not checked on the projector.
