@@ -83,6 +83,11 @@ def test_fr_dpa01_privacy_notice_contains_the_key_disclosures(client):
     assert "the organising electoral body would be the controller" in body
     assert "act as a processor on its instructions" in body
     assert "IEBC" not in body.split("<main", 1)[1].split("</main>", 1)[0]
+    # OTP handling, as measured: logged to the server console only with the demo
+    # settings; kept in the server-side session record while debug mode shows it.
+    assert "prints them on the server console only when the demo settings are used" in body
+    assert "kept in your session record on the server" in body
+    assert "written to the server's application log" not in body
     # Contact and retention as filled in by the student; no placeholder left.
     assert "Contact: <span class=\"font-semibold\">jakin.kipkorir@gmail.com</span>" in body
     assert "Retention period: <span class=\"font-semibold\">6 months after results are published</span>" in body
