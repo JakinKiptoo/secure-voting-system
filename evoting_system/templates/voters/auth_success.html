@@ -23,7 +23,8 @@
 <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100/90 border border-slate-200 text-[11px] font-medium text-slate-600 mb-3">Ballot anonymised via one-time token</span>
 <h1 class="text-xl font-bold text-slate-900 tracking-tight mb-2">Session established</h1>
 <p class="text-sm text-slate-500 mb-6 leading-relaxed">
-Your identity has been verified. A single-use session token has been issued, valid until <strong class="text-slate-700 font-mono">{{ expiry_time }}</strong>.
+Your identity has been verified. A single-use session token has been issued, valid until <strong class="text-slate-700 font-mono"><time id="token-expiry" datetime="{{ expiry_time|date:'c' }}" data-server-now="{% now 'c' %}">{{ expiry_time }}</time></strong>.
+<span id="token-countdown" class="block mt-2 font-mono text-slate-700" aria-live="off" hidden></span>
 </p>
 <a class="group w-full bg-[#0E3929] hover:bg-[#144834] text-white rounded-xl py-3 px-4 font-semibold text-sm flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-950/15" href="{% url 'ballots:cast' %}">
 <span>Proceed to cast your ballot</span>
@@ -31,11 +32,22 @@ Your identity has been verified. A single-use session token has been issued, val
 </a>
 </div>
 </main>
+<script>
+(function () {  // counts down the server's remaining time; the expiry text above stays as the no-JS fallback
+  var t = document.getElementById("token-expiry"), out = document.getElementById("token-countdown");
+  var left = Date.parse(t.getAttribute("datetime")) - Date.parse(t.dataset.serverNow), start = performance.now();
+  if (isNaN(left)) return; out.hidden = false;
+  function tick() { var ms = left - (performance.now() - start), s = Math.max(0, Math.ceil(ms / 1000));
+    out.textContent = s > 0 ? Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0") + " remaining" : "0:00 — Token expired";
+    if (s > 0) setTimeout(tick, 250); }
+  tick();
+})();
+</script>
 
 <footer class="w-full bg-[#082218] border-t border-emerald-950 py-3.5 px-6 text-xs text-emerald-100/75">
 <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left">
 <div class="text-[11px] tracking-wide text-emerald-200/80">© 2026 Kenyan Electronic Voting System (student project). <span class="text-emerald-400/90 font-medium">Final-year academic proof-of-concept — not affiliated with IEBC.</span></div>
-<span class="inline-flex items-center gap-1.5 text-emerald-300 font-semibold text-[11px] uppercase tracking-wider">TLS 1.3</span>
+<span class="inline-flex items-center gap-1.5 text-emerald-300 font-semibold text-[11px] uppercase tracking-wider">TLS 1.3 when deployed behind a proxy</span>
 </div>
 </footer>
 </body>

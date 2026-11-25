@@ -44,6 +44,29 @@ def test_no_template_or_css_loads_a_resource_from_another_host():
     assert offenders == [], "external resources:\n" + "\n".join(offenders)
 
 
+HERO = STATIC_DIR / "img" / "hero_chain.svg"
+IMAGE_REF = re.compile(r"""(?:<img\b[^>]*?\b(?:src|srcset)\s*=\s*["']([^"']+)["']|url\(\s*["']?([^"')\s]+))""", re.IGNORECASE)
+SVG_EXTERNAL = re.compile(r"""(?:\b(?:xlink:)?href\s*=\s*["']|\bsrc\s*=\s*["']|url\(\s*["']?|@import\s+["']?)\s*(?:https?:)?//""", re.IGNORECASE)
+
+
+def test_hero_image_is_local_and_no_template_uses_an_external_image_host():
+    svg = HERO.read_text(encoding="utf-8")  # fails if the SVG is missing
+    assert svg.lstrip().startswith("<svg") and svg.rstrip().endswith("</svg>"), "hero_chain.svg is not an SVG document"
+    assert len(svg.encode("utf-8")) <= 50 * 1024, "hero_chain.svg unexpectedly large"
+    assert not SVG_EXTERNAL.search(svg), "hero_chain.svg references an external resource"
+    assert not (STATIC_DIR / "img" / "hero.jpg").exists(), "the old hero.jpg must be gone"
+    offenders = []
+    for path in list(_templates()) + sorted(STATIC_DIR.rglob("*.css")) + sorted(STATIC_DIR.rglob("*.svg")):
+        for m in IMAGE_REF.finditer(path.read_text(encoding="utf-8")):
+            ref = m.group(1) or m.group(2)
+            if EXTERNAL.match(ref):
+                offenders.append(f"{path.name}: {ref}")
+    assert offenders == [], "external image references:\n" + "\n".join(offenders)
+    home = (TEMPLATES_DIR / "home.html").read_text(encoding="utf-8")
+    assert re.search(r"""<img src="\{% static 'img/hero_chain\.svg' %\}" alt="" aria-hidden="true\"""", home), \
+        "landing hero image must come from {% static %} and be marked decorative"
+
+
 def test_vendored_assets_exist_and_every_static_reference_resolves():
     for f in (TAILWIND, FONT_CSS, THIRD_PARTY):
         assert f.is_file() and f.stat().st_size > 0, f"missing: {f}"
