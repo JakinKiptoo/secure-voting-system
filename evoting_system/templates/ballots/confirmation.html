@@ -1,20 +1,17 @@
-<!DOCTYPE html>
+{% load static %}<!DOCTYPE html>
 <html class="h-full" lang="en">
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Ballot Confirmed — Kenyan Electronic Voting System</title>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="{% static 'vendor/tailwindcss/tailwindcss-3.4.17-forms-0.5.10-container-queries-0.1.1.js' %}"></script>
 <script>
   tailwind.config = { theme: { extend: {
     colors: { brand: { 900:'#04271a',850:'#063322',800:'#063b27',750:'#0b452f',700:'#0a4d34',600:'#106f4c',500:'#10b981',400:'#34d399',100:'#d1fae5',50:'#ecfdf5' } },
     fontFamily: { sans: ['Inter','system-ui','sans-serif'], mono: ['JetBrains Mono','monospace'] }
   } } };
 </script>
-<link href="https://fonts.googleapis.com" rel="preconnect"/>
-<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500;600&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="{% static 'vendor/fonts/fonts.css' %}" rel="stylesheet"/>
 <style>
 /* Long identifiers (UUID, SHA-256) wrap at any character inside their box, never past it. */
 .evs-digest{display:block;max-width:100%;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.6;overflow-wrap:anywhere;word-break:normal;white-space:normal}

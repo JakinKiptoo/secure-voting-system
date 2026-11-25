@@ -1,19 +1,17 @@
-<!DOCTYPE html>
+{% load static %}<!DOCTYPE html>
 <html class="h-full" lang="en">
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Choose a dashboard — Kenyan Electronic Voting System</title>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="{% static 'vendor/tailwindcss/tailwindcss-3.4.17-forms-0.5.10-container-queries-0.1.1.js' %}"></script>
 <script>
   tailwind.config = { theme: { extend: {
     colors: { gov: { forest: '#0E3929', dark: '#08251B', hover: '#0A2D20', accent: '#86EFAC', surface: '#F8FAFA', border: '#E2E8F0' } },
     fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
   } } };
 </script>
-<link href="https://fonts.googleapis.com" rel="preconnect"/>
-<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="{% static 'vendor/fonts/fonts.css' %}" rel="stylesheet"/>
 </head>
 <body class="h-full flex flex-col bg-[#F8FAFA] text-slate-800 antialiased font-sans">
 {% include "common/_site_nav.html" %}
