@@ -13,6 +13,16 @@ settings, same everything. Use:
 """
 
 from .local import *  # noqa: F401,F403
+from decouple import config
+
+# Optional: run the demo web server as the restricted runtime role
+# (FR-DB-01), the way config.settings.production does. Set DEMO_DB_AS_APP=1
+# for runserver only; seed_demo and reset_demo must run WITHOUT it, as the
+# owner (reset_demo deletes ballots and audit rows, which the restricted
+# role may not do).
+if config("DEMO_DB_AS_APP", default=False, cast=bool):
+    DATABASES["default"]["USER"] = config("DB_APP_USER")  # noqa: F405
+    DATABASES["default"]["PASSWORD"] = config("DB_APP_PASSWORD")  # noqa: F405
 
 LOGGING = {
     "version": 1,
