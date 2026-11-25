@@ -19,7 +19,7 @@
 </head>
 <body class="min-h-screen flex flex-col bg-slate-50 text-slate-800 antialiased font-sans">
 {% include "common/_site_nav.html" %}
-<div class="flex-1 flex flex-col lg:flex-row">
+<main class="flex-1 flex flex-col lg:flex-row">
 
 <section class="w-full lg:w-7/12 flex flex-col justify-start p-6 sm:p-10 lg:p-12">
 <div class="max-w-lg w-full">
@@ -32,13 +32,13 @@
 
 <div class="space-y-3 mb-6">
 <div class="bg-white rounded-xl p-4 shadow-sm">
-<p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider font-mono mb-1.5">Ballot Reference (UUID)</p>
+<p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider font-mono mb-1.5">Ballot Reference (UUID)</p>
 <div class="bg-slate-50 rounded-lg px-3 py-2 min-w-0">
 <code class="evs-digest text-slate-700">{{ ballot_id }}</code>
 </div>
 </div>
 <div class="bg-white rounded-xl p-4 shadow-sm">
-<p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider font-mono mb-1.5">Audit Hash Digest (SHA-256)</p>
+<p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider font-mono mb-1.5">Audit Hash Digest (SHA-256)</p>
 <div class="bg-slate-50 rounded-lg px-3 py-2 min-w-0">
 <code class="evs-digest text-slate-700">{{ audit_hash }}</code>
 </div>
@@ -64,7 +64,7 @@
 </div>
 {% endif %}
 
-<p class="text-xs text-slate-500 leading-relaxed bg-slate-100/70 rounded-xl p-4">
+<p class="text-xs text-slate-600 leading-relaxed bg-slate-100/70 rounded-xl p-4">
 This system has no record linking your identity to this ballot — the audit hash above lets anyone verify the tally's integrity without revealing who cast which vote.
 </p>
 </div>
@@ -83,7 +83,7 @@ Your ballot reference and audit hash are the only things tying this page to a vo
 </div>
 </div>
 </section>
-</div>
+</main>
 
 <footer class="w-full bg-[#031c13] border-t border-[#0d4a34] px-6 py-3.5 text-xs text-slate-400 font-mono flex flex-col md:flex-row items-center justify-between gap-3 shrink-0">
 <div class="text-center md:text-left text-[11px] leading-relaxed">

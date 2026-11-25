@@ -26,7 +26,7 @@
 </head>
 <body class="h-full flex flex-col bg-slate-50 text-slate-800 antialiased font-sans">
 {% include "common/_site_nav.html" %}
-<div class="flex-1 flex flex-col lg:flex-row min-h-0">
+<main class="flex-1 flex flex-col lg:flex-row min-h-0">
 <section class="w-full lg:w-7/12 flex flex-col p-6 sm:p-10 lg:p-12 overflow-y-auto">
 <h1 class="text-2xl font-black text-slate-900 tracking-tight mb-1">Cast Your Ballot</h1>
 
@@ -53,7 +53,7 @@ Ballot anonymised via one-time token
 <span class="w-9 h-9 rounded-full bg-brand-100 text-brand-800 flex items-center justify-center font-bold text-sm flex-shrink-0">{{ forloop.counter }}</span>
 <span class="text-sm font-semibold text-slate-900">{{ radio.choice_label }}</span>
 </span>
-<span class="text-[10px] font-mono text-slate-400 uppercase tracking-wider">Option #{{ forloop.counter|stringformat:"02d" }}</span>
+<span class="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Option #{{ forloop.counter|stringformat:"02d" }}</span>
 </span>
 </label>
 {% endfor %}
@@ -90,7 +90,7 @@ Your session token is used once to record this ballot, then discarded — nothin
 </div>
 </div>
 </section>
-</div>
+</main>
 
 <footer class="w-full bg-[#042619] border-t border-emerald-950 px-6 sm:px-8 lg:px-12 py-4 flex flex-col md:flex-row items-center justify-between gap-3 text-[11px] text-emerald-200/70 tracking-wide z-20">
 <div class="text-center md:text-left leading-relaxed">
